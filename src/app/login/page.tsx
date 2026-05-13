@@ -40,13 +40,12 @@ export default async function LoginPage({
 
         {/* Logo */}
         <div className="relative z-10">
-          <div className="inline-flex items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm p-3">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 156.17 141.78"
-              className="h-16 w-auto"
-              aria-label="Oscar logo"
-            >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 156.17 141.78"
+            className="h-24 w-auto drop-shadow-lg"
+            aria-label="Oscar logo"
+          >
               <circle fill="#fff" fillOpacity="0.25" cx="83.45" cy="61.23" r="50.52" />
               <circle fill="none" stroke="#fff" strokeOpacity="0.6" strokeMiterlimit="10" strokeWidth="2" cx="83.45" cy="61.23" r="50.52" />
               <line stroke="#fff" strokeOpacity="0.5" strokeMiterlimit="10" strokeWidth="2" x1="110.85" y1="32.83" x2="154.08" y2="2.17" />
@@ -69,7 +68,6 @@ export default async function LoginPage({
                 <path fill="#fff" d="M119.45,52.53h3.63v2.95h.08c.24-.51.57-.98.97-1.39.4-.42.85-.77,1.35-1.07s1.04-.53,1.64-.71c.59-.17,1.18-.26,1.78-.26s1.13.08,1.62.24l-.16,3.92c-.30-.08-.59-.15-.89-.2s-.59-.08-.89-.08c-1.78,0-3.14.5-4.08,1.49-.94,1-1.41,2.54-1.41,4.64v9.61h-3.63v-19.14h0Z" />
               </g>
             </svg>
-          </div>
           <p className="mt-2 text-xs font-medium text-sky-200 tracking-widest uppercase">
             Admin Portal
           </p>
@@ -107,8 +105,8 @@ export default async function LoginPage({
       </div>
 
       {/* Form panel */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-white">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-gradient-to-br from-slate-50 to-white">
+        <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
           {/* Mobile-only heading */}
           <div className="mb-8 lg:hidden text-center">
             <div className="flex justify-center mb-3">
@@ -153,6 +151,7 @@ export default async function LoginPage({
 
           {/* Desktop heading */}
           <div className="mb-8 hidden lg:block">
+            <div className="w-8 h-1 rounded-full bg-[#00b0db] mb-4" />
             <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
             <p className="text-muted-foreground mt-1 text-sm">
               Sign in to your account

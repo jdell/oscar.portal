@@ -55,13 +55,15 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+          Email
+        </Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
           autoFocus
-          className="h-11"
+          className="h-11 rounded-xl border-slate-200 bg-white focus-visible:border-sky-400 focus-visible:ring-4 focus-visible:ring-sky-500/15 transition-shadow duration-200"
           {...form.register("email")}
         />
         {form.formState.errors.email && (
@@ -72,19 +74,21 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+          Password
+        </Label>
         <div className="relative">
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
-            className="h-11 pr-10"
+            className="h-11 rounded-xl border-slate-200 bg-white pr-10 focus-visible:border-sky-400 focus-visible:ring-4 focus-visible:ring-sky-500/15 transition-shadow duration-200"
             {...form.register("password")}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
             tabIndex={-1}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
@@ -101,7 +105,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       <Button
         type="submit"
         disabled={submitting}
-        className="h-11 w-full bg-sky-600 hover:bg-sky-700"
+        className="h-11 w-full rounded-xl bg-sky-600 hover:bg-sky-700 shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 transition-all duration-200"
       >
         {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         {submitting ? "Signing in…" : "Sign in"}
