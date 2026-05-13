@@ -5,25 +5,54 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { api, ApiError } from "@/lib/api";
 import { requireSession } from "@/lib/auth";
+import {
+  OrganizationSettingsForm,
+  type OrganizationSettings,
+} from "./organization-settings-form";
+
+async function loadOrganization(
+  id: string,
+): Promise<OrganizationSettings | null> {
+  try {
+    return await api.get<OrganizationSettings>(`/organizations/${id}`);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      console.error("organization fetch failed", error.status);
+    }
+    return null;
+  }
+}
 
 export default async function SettingsPage() {
   const session = await requireSession();
+  const org = await loadOrganization(session.user.organizationId);
+
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader
         title="Settings"
         description="Configuration for your organization."
       />
+
       <Card>
         <CardHeader>
           <CardTitle>Organization</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <Row label="Name">{session.user.organizationName}</Row>
-          <Row label="Organization ID">{session.user.organizationId}</Row>
+        <CardContent>
+          <OrganizationSettingsForm
+            organizationId={session.user.organizationId}
+            initial={
+              org ?? {
+                id: session.user.organizationId,
+                name: session.user.organizationName,
+              }
+            }
+          />
         </CardContent>
       </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Your account</CardTitle>
