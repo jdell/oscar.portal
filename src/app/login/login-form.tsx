@@ -100,7 +100,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form noValidate onSubmit={onSubmit} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="email" className="text-sm font-medium text-slate-700">
           Email

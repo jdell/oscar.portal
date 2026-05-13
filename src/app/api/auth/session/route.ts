@@ -25,7 +25,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Invalid input" }, { status: 400 });
   }
 
-  const claims = decodeJwtPayload(parsed.data.access);
+  let claims: Record<string, unknown>;
+  try {
+    claims = decodeJwtPayload(parsed.data.access);
+  } catch {
+    return NextResponse.json({ message: "Invalid token" }, { status: 400 });
+  }
 
   const staff = (() => {
     try {
