@@ -323,9 +323,9 @@ export default async function AgencyDetailPage({
                 renderItem={(i) => (
                   <>
                     <span className="font-medium">{i.name}</span>
-                    {i.shortName && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({i.shortName})
+                    {i.type && (
+                      <span className="ml-2 text-xs text-muted-foreground capitalize">
+                        ({i.type})
                       </span>
                     )}
                   </>

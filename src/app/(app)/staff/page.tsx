@@ -3,22 +3,30 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { api, ApiError } from "@/lib/api";
-import type { StaffMember } from "@/lib/types";
+import type { StaffMember, User } from "@/lib/types";
 import { StaffTable } from "./staff-table";
 
 async function loadStaff(): Promise<StaffMember[]> {
-  try {
-    const result = await api.get<StaffMember[] | { items: StaffMember[] }>(
-      "/staff-members",
-    );
-    if (Array.isArray(result)) return result;
-    return result.items ?? [];
-  } catch (error) {
-    if (error instanceof ApiError) {
-      console.error("staff fetch failed", error.status, error.body);
-    }
-    return [];
-  }
+  const [staff, users] = await Promise.all([
+    api
+      .get<StaffMember[] | { items: StaffMember[] }>("/staff-members")
+      .then((r) => (Array.isArray(r) ? r : (r.items ?? [])))
+      .catch((error: unknown) => {
+        if (error instanceof ApiError) {
+          console.error("staff fetch failed", error.status, error.body);
+        }
+        return [] as StaffMember[];
+      }),
+    api
+      .get<User[] | { items: User[] }>("/users")
+      .then((r) => (Array.isArray(r) ? r : (r.items ?? [])))
+      .catch(() => [] as User[]),
+  ]);
+
+  return staff.map((s) => ({
+    ...s,
+    user: s.user ?? users.find((u) => u.staffMemberId === s.id) ?? null,
+  }));
 }
 
 export default async function StaffPage() {

@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail, Phone, Building2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  Building2,
+  ShieldCheck,
+  CheckSquare,
+  XSquare,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +32,21 @@ async function loadStaff(id: string): Promise<StaffMemberDetail | null> {
   }
 }
 
+function staffName(s: StaffMemberDetail): string {
+  return (
+    s.name?.trim() ||
+    formatName({ firstName: s.firstName, lastName: s.lastName })
+  );
+}
+
+function staffEmail(s: StaffMemberDetail): string {
+  return s.emailAddress ?? s.email;
+}
+
+function staffActive(s: StaffMemberDetail): boolean {
+  return s.active ?? s.isActive;
+}
+
 export default async function StaffDetailPage({
   params,
 }: {
@@ -32,6 +55,10 @@ export default async function StaffDetailPage({
   const { id } = await params;
   const staff = await loadStaff(id);
   if (!staff) notFound();
+
+  const active = staffActive(staff);
+  const agencyRoles = staff.agencies ?? [];
+  const phoneList = staff.phoneNumbers ?? [];
 
   return (
     <div className="space-y-6">
@@ -42,13 +69,22 @@ export default async function StaffDetailPage({
           </Link>
         </Button>
         <PageHeader
-          title={formatName(staff)}
+          title={staffName(staff)}
           description={staff.title ?? undefined}
           action={
             <div className="flex items-center gap-2">
-              <Badge variant={staff.isActive ? "default" : "secondary"}>
-                {staff.isActive ? "Active" : "Inactive"}
+              <Badge variant={active ? "default" : "secondary"}>
+                {active ? "Active" : "Inactive"}
               </Badge>
+              {staff.isSurveyEnabled ? (
+                <Badge variant="outline" className="gap-1">
+                  <CheckSquare size={12} /> Survey enabled
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="gap-1">
+                  <XSquare size={12} /> Survey disabled
+                </Badge>
+              )}
               <Button asChild variant="outline">
                 <Link href={`/staff/${staff.id}/edit`}>Edit</Link>
               </Button>
@@ -63,8 +99,19 @@ export default async function StaffDetailPage({
             <CardTitle className="text-sm">Contact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <Row icon={<Mail size={14} />}>{staff.email}</Row>
-            <Row icon={<Phone size={14} />}>{staff.phone ?? "—"}</Row>
+            <Row icon={<Mail size={14} />}>{staffEmail(staff)}</Row>
+            {phoneList.length > 0 ? (
+              phoneList.map((p, i) => (
+                <Row key={i} icon={<Phone size={14} />}>
+                  {p.number}
+                  <span className="ml-2 text-xs text-muted-foreground capitalize">
+                    {p.type}
+                  </span>
+                </Row>
+              ))
+            ) : (
+              <Row icon={<Phone size={14} />}>{staff.phone ?? "—"}</Row>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -73,7 +120,9 @@ export default async function StaffDetailPage({
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <Row icon={<Building2 size={14} />}>
-              {staff.agencyName ?? "—"}
+              {agencyRoles.length > 0
+                ? `${agencyRoles.length} agenc${agencyRoles.length === 1 ? "y" : "ies"}`
+                : (staff.agencyName ?? "—")}
             </Row>
             <Row label="Roles">{staff.roles.join(", ") || "—"}</Row>
             <Row label="Joined">{formatDate(staff.createdAt)}</Row>
@@ -81,14 +130,21 @@ export default async function StaffDetailPage({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Permissions</CardTitle>
+            <CardTitle className="text-sm">Credentials</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
-            <p className="text-muted-foreground">
-              {staff.permissions?.length ?? 0} permission
-              {(staff.permissions?.length ?? 0) === 1 ? "" : "s"} granted via
-              roles.
-            </p>
+            {staff.user ? (
+              <div className="space-y-1">
+                <Row icon={<ShieldCheck size={14} />}>{staff.user.username}</Row>
+                {staff.user.isAdmin && (
+                  <Badge variant="outline">Admin</Badge>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                No user credentials. Add via Edit.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -96,48 +152,43 @@ export default async function StaffDetailPage({
       <Tabs defaultValue="agencies">
         <TabsList>
           <TabsTrigger value="agencies">
-            Agencies ({staff.agencies?.length ?? 0})
+            Agencies ({agencyRoles.length})
           </TabsTrigger>
           <TabsTrigger value="permissions">
-            Permissions ({staff.permissions?.length ?? 0})
+            Permissions ({staff.permissionsDetail?.length ?? 0})
           </TabsTrigger>
         </TabsList>
         <TabsContent value="agencies">
           <Card>
             <CardContent className="pt-6">
-              {(staff.agencies ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">
+              {agencyRoles.length === 0 ? (
+                <p className="py-4 text-sm text-muted-foreground">
                   Not associated with any agencies.
                 </p>
               ) : (
                 <ul className="space-y-3">
-                  {staff.agencies.map((a) => (
+                  {agencyRoles.map((ar, i) => (
                     <li
-                      key={a.id}
+                      key={`${ar.agencyId}-${i}`}
                       className="flex items-start justify-between gap-3 rounded-md border p-3"
                     >
                       <div className="flex items-start gap-3">
                         <Building2
                           size={16}
-                          className="text-muted-foreground mt-0.5"
+                          className="mt-0.5 text-muted-foreground"
                         />
                         <div>
                           <Link
-                            href={`/agencies/${a.id}`}
+                            href={`/agencies/${ar.agencyId}`}
                             className="text-sm font-medium hover:underline"
                           >
-                            {a.name}
+                            {ar.agencyName ?? ar.agencyId}
                           </Link>
-                          {a.primaryLocation && (
-                            <p className="text-xs text-muted-foreground">
-                              {a.primaryLocation}
-                            </p>
-                          )}
                         </div>
                       </div>
-                      <Badge variant="secondary" className="capitalize">
-                        {a.status}
-                      </Badge>
+                      {ar.roleName && (
+                        <Badge variant="secondary">{ar.roleName}</Badge>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -148,18 +199,14 @@ export default async function StaffDetailPage({
         <TabsContent value="permissions">
           <Card>
             <CardContent className="pt-6">
-              {(staff.permissions ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">
+              {(staff.permissionsDetail ?? []).length === 0 ? (
+                <p className="py-4 text-sm text-muted-foreground">
                   No permissions granted.
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {staff.permissions.map((p) => (
-                    <Badge
-                      key={p.id}
-                      variant="outline"
-                      title={p.description}
-                    >
+                  {staff.permissionsDetail!.map((p) => (
+                    <Badge key={p.id} variant="outline" title={p.description}>
                       {p.key}
                     </Badge>
                   ))}
@@ -188,7 +235,7 @@ function Row({
         {icon}
         {label}
       </span>
-      <span className="text-foreground truncate">{children}</span>
+      <span className="truncate text-foreground">{children}</span>
     </div>
   );
 }
