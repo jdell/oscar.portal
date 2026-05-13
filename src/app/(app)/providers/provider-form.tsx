@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,42 +18,53 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Provider, Resource } from "@/lib/types";
+import { Switch } from "@/components/ui/switch";
+import type {
+  MedicalResourceSummary,
+  Provider,
+  ProviderParticipationType,
+} from "@/lib/types";
 
 const schema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  specialty: z.string().optional(),
-  npi: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().optional(),
-  linkedResourceId: z.string().optional(),
-  isActive: z.enum(["true", "false"]),
+  name: z.string().min(1, "Name is required"),
+  emailAddress: z.string().email("Invalid email").optional().or(z.literal("")),
+  providerParticipationTypeId: z.coerce
+    .number()
+    .int()
+    .positive("Participation type is required"),
+  medicalResourceId: z.coerce
+    .number()
+    .int()
+    .positive("Medical resource is required"),
+  active: z.boolean(),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormInput = z.input<typeof schema>;
+type FormValues = z.output<typeof schema>;
 
 interface ProviderFormProps {
-  resources: Resource[];
+  participationTypes: ProviderParticipationType[];
+  medicalResources: MedicalResourceSummary[];
   initial?: Partial<Provider>;
 }
 
-export function ProviderForm({ resources, initial }: ProviderFormProps) {
+export function ProviderForm({
+  participationTypes,
+  medicalResources,
+  initial,
+}: ProviderFormProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const isEdit = Boolean(initial?.id);
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      firstName: initial?.firstName ?? "",
-      lastName: initial?.lastName ?? "",
-      specialty: initial?.specialty ?? "",
-      npi: initial?.npi ?? "",
-      email: initial?.email ?? "",
-      phone: initial?.phone ?? "",
-      linkedResourceId: initial?.linkedResourceId ?? "",
-      isActive: initial?.isActive === false ? "false" : "true",
+      name: initial?.name ?? "",
+      emailAddress: initial?.emailAddress ?? "",
+      providerParticipationTypeId: initial?.providerParticipationTypeId ?? 0,
+      medicalResourceId: initial?.medicalResourceId ?? 0,
+      active: initial?.active ?? true,
     },
   });
 
@@ -60,14 +72,12 @@ export function ProviderForm({ resources, initial }: ProviderFormProps) {
     setSubmitting(true);
     try {
       const payload = {
-        firstName: values.firstName,
-        lastName: values.lastName,
-        specialty: values.specialty || null,
-        npi: values.npi || null,
-        email: values.email || null,
-        phone: values.phone || null,
-        linkedResourceId: values.linkedResourceId || null,
-        isActive: values.isActive === "true",
+        id: initial?.id,
+        name: values.name,
+        emailAddress: values.emailAddress || null,
+        providerParticipationTypeId: values.providerParticipationTypeId,
+        medicalResourceId: values.medicalResourceId,
+        active: values.active,
       };
 
       const url = isEdit ? `/api/providers/${initial?.id}` : "/api/providers";
@@ -82,9 +92,10 @@ export function ProviderForm({ resources, initial }: ProviderFormProps) {
         toast.error(body.message ?? "Save failed");
         return;
       }
-      const data = (await response.json()) as Provider;
-      toast.success(isEdit ? "Provider updated" : "Provider created");
-      router.push(`/providers/${data.id ?? initial?.id}`);
+      toast.success(
+        isEdit ? `Provider ${values.name} saved` : "Provider created",
+      );
+      router.push("/providers");
       router.refresh();
     } catch {
       toast.error("Network error — try again");
@@ -93,111 +104,161 @@ export function ProviderForm({ resources, initial }: ProviderFormProps) {
     }
   });
 
+  async function onDelete() {
+    if (!initial?.id) return;
+    if (!confirm(`Delete provider "${initial.name}"? This cannot be undone.`))
+      return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/providers/${initial.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body.message ?? "Delete failed");
+        return;
+      }
+      toast.success("Provider deleted");
+      router.push("/providers");
+      router.refresh();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const ptId = form.watch("providerParticipationTypeId");
+  const mrId = form.watch("medicalResourceId");
+
   return (
     <Card>
       <CardContent className="pt-6">
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First name *</Label>
-              <Input id="firstName" {...form.register("firstName")} />
-              {form.formState.errors.firstName && (
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input id="name" {...form.register("name")} />
+              {form.formState.errors.name && (
                 <p className="text-xs text-destructive">
-                  {form.formState.errors.firstName.message}
+                  {form.formState.errors.name.message}
                 </p>
               )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last name *</Label>
-              <Input id="lastName" {...form.register("lastName")} />
-              {form.formState.errors.lastName && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.lastName.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="specialty">Specialty</Label>
-              <Input id="specialty" {...form.register("specialty")} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="npi">NPI</Label>
-              <Input id="npi" {...form.register("npi")} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...form.register("email")} />
-              {form.formState.errors.email && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...form.register("phone")} />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="linkedResourceId">Linked resource</Label>
+              <Label htmlFor="emailAddress">Email address</Label>
+              <Input
+                id="emailAddress"
+                type="email"
+                {...form.register("emailAddress")}
+              />
+              {form.formState.errors.emailAddress && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.emailAddress.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="providerParticipationTypeId">
+                Participation type *
+              </Label>
               <Select
-                value={form.watch("linkedResourceId") || "__none__"}
+                value={ptId ? String(ptId) : ""}
                 onValueChange={(v) =>
                   form.setValue(
-                    "linkedResourceId",
-                    !v || v === "__none__" ? "" : v,
+                    "providerParticipationTypeId",
+                    Number(v ?? 0),
+                    { shouldValidate: true },
                   )
                 }
               >
-                <SelectTrigger id="linkedResourceId">
-                  <SelectValue placeholder="Select a resource (optional)" />
+                <SelectTrigger id="providerParticipationTypeId">
+                  <SelectValue placeholder="Select a type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">No linked resource</SelectItem>
-                  {resources.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
+                  {participationTypes.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.providerParticipationTypeId && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.providerParticipationTypeId.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="medicalResourceId">Medical resource *</Label>
+              <Select
+                value={mrId ? String(mrId) : ""}
+                onValueChange={(v) =>
+                  form.setValue("medicalResourceId", Number(v ?? 0), {
+                    shouldValidate: true,
+                  })
+                }
+              >
+                <SelectTrigger id="medicalResourceId">
+                  <SelectValue placeholder="Select a resource" />
+                </SelectTrigger>
+                <SelectContent>
+                  {medicalResources.map((r) => (
+                    <SelectItem key={r.id} value={String(r.id)}>
                       {r.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {form.formState.errors.medicalResourceId && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.medicalResourceId.message}
+                </p>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="isActive">Status</Label>
-              <Select
-                value={form.watch("isActive")}
-                onValueChange={(v) => {
-                  if (v) form.setValue("isActive", v as FormValues["isActive"]);
-                }}
-              >
-                <SelectTrigger id="isActive">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">Active</SelectItem>
-                  <SelectItem value="false">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center justify-between rounded-md border px-3 py-2 md:col-span-2">
+              <Label htmlFor="active" className="cursor-pointer">
+                Active
+              </Label>
+              <Switch
+                id="active"
+                checked={form.watch("active")}
+                onCheckedChange={(v) => form.setValue("active", v)}
+              />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="bg-sky-600 hover:bg-sky-700"
-            >
-              {submitting
-                ? "Saving…"
-                : isEdit
-                  ? "Save changes"
-                  : "Create provider"}
-            </Button>
+          <div className="flex items-center justify-between pt-2">
+            <div>
+              {isEdit && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-destructive hover:bg-destructive/10"
+                  disabled={submitting}
+                  onClick={onDelete}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="bg-sky-600 hover:bg-sky-700"
+              >
+                {submitting
+                  ? "Saving…"
+                  : isEdit
+                    ? "Save changes"
+                    : "Create provider"}
+              </Button>
+            </div>
           </div>
         </form>
       </CardContent>

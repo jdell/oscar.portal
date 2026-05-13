@@ -4,8 +4,11 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { api, ApiError } from "@/lib/api";
-import { formatName } from "@/lib/utils";
-import type { Provider, Resource } from "@/lib/types";
+import type {
+  MedicalResourceSummary,
+  Provider,
+  ProviderParticipationType,
+} from "@/lib/types";
 import { ProviderForm } from "../../provider-form";
 
 async function loadProvider(id: string): Promise<Provider | null> {
@@ -17,11 +20,22 @@ async function loadProvider(id: string): Promise<Provider | null> {
   }
 }
 
-async function loadResources(): Promise<Resource[]> {
+async function loadParticipationTypes(): Promise<ProviderParticipationType[]> {
   try {
-    const result = await api.get<Resource[] | { items: Resource[] }>(
-      "/medical-resources",
-    );
+    const result = await api.get<
+      ProviderParticipationType[] | { items: ProviderParticipationType[] }
+    >("/participation-types");
+    return Array.isArray(result) ? result : (result.items ?? []);
+  } catch {
+    return [];
+  }
+}
+
+async function loadMedicalResources(): Promise<MedicalResourceSummary[]> {
+  try {
+    const result = await api.get<
+      MedicalResourceSummary[] | { items: MedicalResourceSummary[] }
+    >("/medical-resources");
     return Array.isArray(result) ? result : (result.items ?? []);
   } catch {
     return [];
@@ -34,9 +48,10 @@ export default async function EditProviderPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [provider, resources] = await Promise.all([
+  const [provider, participationTypes, medicalResources] = await Promise.all([
     loadProvider(id),
-    loadResources(),
+    loadParticipationTypes(),
+    loadMedicalResources(),
   ]);
   if (!provider) notFound();
 
@@ -47,8 +62,12 @@ export default async function EditProviderPage({
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to provider
         </Link>
       </Button>
-      <PageHeader title="Edit provider" description={formatName(provider)} />
-      <ProviderForm resources={resources} initial={provider} />
+      <PageHeader title="Edit provider" description={provider.name} />
+      <ProviderForm
+        participationTypes={participationTypes}
+        medicalResources={medicalResources}
+        initial={provider}
+      />
     </div>
   );
 }

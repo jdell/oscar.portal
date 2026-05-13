@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail, Phone, Stethoscope, IdCard } from "lucide-react";
+import { ArrowLeft, Building2, Mail, Stethoscope } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api";
-import { formatName } from "@/lib/utils";
-import type { Provider } from "@/lib/types";
+import type {
+  MedicalResourceSummary,
+  Provider,
+  ProviderParticipationType,
+} from "@/lib/types";
 
 async function loadProvider(id: string): Promise<Provider | null> {
   try {
@@ -23,14 +26,44 @@ async function loadProvider(id: string): Promise<Provider | null> {
   }
 }
 
+async function hydrate(p: Provider): Promise<Provider> {
+  if (p.participationType && p.medicalResource) return p;
+  try {
+    const [pts, mrs] = await Promise.all([
+      api.get<
+        ProviderParticipationType[] | { items: ProviderParticipationType[] }
+      >("/participation-types"),
+      api.get<MedicalResourceSummary[] | { items: MedicalResourceSummary[] }>(
+        "/medical-resources",
+      ),
+    ]);
+    const ptList = Array.isArray(pts) ? pts : (pts.items ?? []);
+    const mrList = Array.isArray(mrs) ? mrs : (mrs.items ?? []);
+    return {
+      ...p,
+      participationType:
+        p.participationType ??
+        ptList.find((t) => t.id === p.providerParticipationTypeId) ??
+        null,
+      medicalResource:
+        p.medicalResource ??
+        mrList.find((m) => m.id === p.medicalResourceId) ??
+        null,
+    };
+  } catch {
+    return p;
+  }
+}
+
 export default async function ProviderDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const provider = await loadProvider(id);
-  if (!provider) notFound();
+  const raw = await loadProvider(id);
+  if (!raw) notFound();
+  const provider = await hydrate(raw);
 
   return (
     <div className="space-y-6">
@@ -41,12 +74,12 @@ export default async function ProviderDetailPage({
           </Link>
         </Button>
         <PageHeader
-          title={formatName(provider)}
-          description={provider.specialty ?? undefined}
+          title={provider.name}
+          description={provider.participationType?.name ?? undefined}
           action={
             <div className="flex items-center gap-2">
-              <Badge variant={provider.isActive ? "default" : "secondary"}>
-                {provider.isActive ? "Active" : "Inactive"}
+              <Badge variant={provider.active ? "default" : "secondary"}>
+                {provider.active ? "Active" : "Inactive"}
               </Badge>
               <Button asChild variant="outline">
                 <Link href={`/providers/${provider.id}/edit`}>Edit</Link>
@@ -62,8 +95,7 @@ export default async function ProviderDetailPage({
             <CardTitle className="text-sm">Contact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <Row icon={<Mail size={14} />}>{provider.email ?? "—"}</Row>
-            <Row icon={<Phone size={14} />}>{provider.phone ?? "—"}</Row>
+            <Row icon={<Mail size={14} />}>{provider.emailAddress ?? "—"}</Row>
           </CardContent>
         </Card>
         <Card>
@@ -72,17 +104,26 @@ export default async function ProviderDetailPage({
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <Row icon={<Stethoscope size={14} />}>
-              {provider.specialty ?? "—"}
+              {provider.participationType?.name ?? "—"}
             </Row>
-            <Row icon={<IdCard size={14} />}>{provider.npi ?? "—"}</Row>
-            <Row label="Linked resource">
-              {provider.linkedResourceId && provider.linkedResourceName ? (
-                <Link
-                  href={`/resources/${provider.linkedResourceId}`}
-                  className="text-sky-700 hover:underline"
-                >
-                  {provider.linkedResourceName}
-                </Link>
+            <Row icon={<Building2 size={14} />}>
+              {provider.medicalResource ? (
+                <span className="flex flex-col items-end">
+                  <span className="font-medium">
+                    {provider.medicalResource.name}
+                  </span>
+                  {(provider.medicalResource.address?.city ||
+                    provider.medicalResource.address?.state) && (
+                    <span className="text-xs text-muted-foreground">
+                      {[
+                        provider.medicalResource.address?.city,
+                        provider.medicalResource.address?.state,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                  )}
+                </span>
               ) : (
                 "—"
               )}
