@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
-const API_BASE_URL =
-  process.env.API_BASE_URL ?? "https://cpc-oscar-api-staging.azurewebsites.net";
+const apiBaseUrl =
+  process.env.NEXT_PUBLIC_apiBaseUrl ?? "https://cpc-oscar-api-staging.azurewebsites.net";
 
 export const SESSION_COOKIE = "oscar_admin_session";
 
@@ -40,7 +40,7 @@ function buildUrl(
 ): string {
   const url = new URL(
     path.startsWith("/") ? path : `/${path}`,
-    API_BASE_URL,
+    apiBaseUrl,
   );
   if (searchParams) {
     for (const [key, value] of Object.entries(searchParams)) {

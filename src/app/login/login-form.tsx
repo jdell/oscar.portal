@@ -7,6 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +19,21 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
+function firebaseErrorMessage(code: string): string {
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/user-not-found":
+    case "auth/wrong-password":
+      return "Invalid email or password";
+    case "auth/too-many-requests":
+      return "Too many failed attempts — try again later";
+    case "auth/user-disabled":
+      return "This account has been disabled";
+    default:
+      return "Sign-in failed — try again";
+  }
+}
 
 export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const router = useRouter();
@@ -31,22 +48,52 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitting(true);
     try {
-      const response = await fetch("/api/auth/login", {
+      // Step 1 — Firebase authentication
+      const credential = await signInWithEmailAndPassword(
+        firebaseAuth,
+        values.email,
+        values.password,
+      );
+      const firebaseToken = await credential.user.getIdToken();
+
+      // Step 2 — Exchange Firebase token for an oscar API JWT
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+      const apiResponse = await fetch(`${apiBase}/accounts/token`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ token: firebaseToken }),
       });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        toast.error(data.message ?? "Login failed");
+
+      if (!apiResponse.ok) {
+        toast.error("Invalid credentials");
         return;
       }
+
+      const { access } = (await apiResponse.json()) as { access: string };
+
+      // Step 3 — Store JWT in an httpOnly session cookie via Next.js
+      const sessionResponse = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access }),
+      });
+
+      if (!sessionResponse.ok) {
+        toast.error("Login failed");
+        return;
+      }
+
       const target =
         redirectTo && redirectTo.startsWith("/") ? redirectTo : "/agencies";
       router.push(target);
       router.refresh();
-    } catch {
-      toast.error("Network error — try again");
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? "";
+      if (code.startsWith("auth/")) {
+        toast.error(firebaseErrorMessage(code));
+      } else {
+        toast.error("Network error — try again");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -74,7 +121,10 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+        <Label
+          htmlFor="password"
+          className="text-sm font-medium text-slate-700"
+        >
           Password
         </Label>
         <div className="relative">

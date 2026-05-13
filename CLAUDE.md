@@ -56,7 +56,7 @@ src/
 ### API access
 
 - `src/lib/api.ts` — server-only fetch wrapper. Pulls the bearer token from the session cookie automatically. Throws `ApiError(status, body)` on non-2xx.
-- `API_BASE_URL` is read from `process.env.API_BASE_URL` (server-only).
+- `NEXT_PUBLIC_API_BASE_URL` is the single env var for the oscar.apii base URL — accessible on both server and client.
 - For mutations from client components, POST to a Next.js Route Handler under `/api/*` which then calls `api.post(...)` server-side. This keeps the token off the client.
 
 ### Pages pattern
@@ -91,8 +91,12 @@ npm run lint
 Copy `.env.local.example` → `.env.local`:
 
 ```
-API_BASE_URL=https://cpc-oscar-api-staging.azurewebsites.net
+NEXT_PUBLIC_API_BASE_URL=https://cpc-oscar-api-staging.azurewebsites.net
 NEXT_PUBLIC_APP_NAME=Oscar Admin
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
 ```
 
 ## Related projects

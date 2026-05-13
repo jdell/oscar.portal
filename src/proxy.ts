@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const SESSION_COOKIE = "oscar_admin_session";
-const PUBLIC_PATHS = new Set(["/login", "/api/auth/login", "/api/auth/logout"]);
+const PUBLIC_PATHS = new Set(["/login", "/api/auth/session", "/api/auth/logout"]);
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
