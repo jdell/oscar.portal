@@ -19,6 +19,11 @@ const CATEGORY_LABELS: Record<ResourceCategory, string> = {
   healthy_living: "Healthy living",
 };
 
+const CATEGORY_BADGE: Record<ResourceCategory, "default" | "secondary"> = {
+  medical: "default",
+  healthy_living: "secondary",
+};
+
 export function ResourcesTable({ data }: { data: Resource[] }) {
   const [category, setCategory] = useState<ResourceCategory | "all">("all");
 
@@ -41,13 +46,15 @@ export function ResourcesTable({ data }: { data: Resource[] }) {
         accessorKey: "category",
         header: "Category",
         cell: ({ row }) => (
-          <Badge variant="outline">{CATEGORY_LABELS[row.original.category]}</Badge>
+          <Badge variant={CATEGORY_BADGE[row.original.category]}>
+            {CATEGORY_LABELS[row.original.category]}
+          </Badge>
         ),
       },
       {
-        accessorKey: "resourceTypeName",
-        header: "Type",
-        cell: ({ row }) => row.original.resourceTypeName ?? "—",
+        accessorKey: "location",
+        header: "Location",
+        cell: ({ row }) => row.original.location ?? "—",
       },
       {
         accessorKey: "isActive",
@@ -69,7 +76,9 @@ export function ResourcesTable({ data }: { data: Resource[] }) {
           <Label className="text-xs">Category</Label>
           <Select
             value={category}
-            onValueChange={(v) => setCategory(v as ResourceCategory | "all")}
+            onValueChange={(v) => {
+              if (v) setCategory(v as ResourceCategory | "all");
+            }}
           >
             <SelectTrigger className="w-48">
               <SelectValue />

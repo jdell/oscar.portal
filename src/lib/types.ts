@@ -80,8 +80,24 @@ export interface Resource {
   resourceTypeId?: UUID | null;
   resourceTypeName?: string | null;
   description?: string | null;
+  location?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
   isActive: boolean;
   createdAt: string;
+}
+
+export interface ReferralReason {
+  id: UUID;
+  name: string;
+  description?: string | null;
+}
+
+export interface ResourceDetail extends Resource {
+  insurers: Insurer[];
+  agencies: Agency[];
+  referralReasons: ReferralReason[];
 }
 
 export interface Provider {

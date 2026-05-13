@@ -20,8 +20,8 @@ async function loadResources(): Promise<Resource[]> {
   };
 
   const [medical, healthy] = await Promise.all([
-    safeFetch("/medicalresources"),
-    safeFetch("/healthylivingresources"),
+    safeFetch("/medical-resources"),
+    safeFetch("/healthy-living-resources"),
   ]);
 
   return [
