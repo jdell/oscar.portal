@@ -1,13 +1,8 @@
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api";
-import type { Role } from "@/lib/types";
+import type { Permission, Role } from "@/lib/types";
+import { RolesEditor } from "./roles-editor";
 
 async function loadRoles(): Promise<Role[]> {
   try {
@@ -21,13 +16,31 @@ async function loadRoles(): Promise<Role[]> {
   }
 }
 
+async function loadPermissions(): Promise<Permission[]> {
+  try {
+    const result = await api.get<Permission[] | { items: Permission[] }>(
+      "/permissions",
+    );
+    return Array.isArray(result) ? result : (result.items ?? []);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      console.error("permissions fetch failed", error.status);
+    }
+    return [];
+  }
+}
+
 export default async function PermissionsPage() {
-  const roles = await loadRoles();
+  const [roles, permissions] = await Promise.all([
+    loadRoles(),
+    loadPermissions(),
+  ]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Permissions"
-        description="Roles and permissions in your organization."
+        description="Roles and the permissions assigned to each one."
       />
       {roles.length === 0 ? (
         <Card>
@@ -36,35 +49,7 @@ export default async function PermissionsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {roles.map((role) => (
-            <Card key={role.id}>
-              <CardHeader>
-                <CardTitle className="text-base">{role.name}</CardTitle>
-                {role.description && (
-                  <p className="text-xs text-muted-foreground">
-                    {role.description}
-                  </p>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-1">
-                  {role.permissions.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">
-                      No permissions assigned.
-                    </span>
-                  ) : (
-                    role.permissions.map((p) => (
-                      <Badge key={p} variant="outline">
-                        {p}
-                      </Badge>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <RolesEditor roles={roles} permissions={permissions} />
       )}
     </div>
   );
