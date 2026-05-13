@@ -1,26 +1,38 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { api, ApiError } from "@/lib/api";
+import type { Agency } from "@/lib/types";
+import { StaffForm } from "../staff-form";
 
-export default function NewStaffPage() {
+async function loadAgencies(): Promise<Agency[]> {
+  try {
+    const result = await api.get<Agency[] | { items: Agency[] }>("/agencies");
+    if (Array.isArray(result)) return result;
+    return result.items ?? [];
+  } catch (error) {
+    if (error instanceof ApiError) {
+      console.error("agencies fetch failed", error.status);
+    }
+    return [];
+  }
+}
+
+export default async function NewStaffPage() {
+  const agencies = await loadAgencies();
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
+      <Button asChild variant="ghost" size="sm" className="mb-2">
+        <Link href="/staff">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to staff
+        </Link>
+      </Button>
       <PageHeader
         title="New staff member"
         description="Add a new staff member to your organization."
       />
-      <Card>
-        <CardHeader>
-          <CardTitle>Staff form</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Form coming soon. Use the agencies form as a reference.
-        </CardContent>
-      </Card>
+      <StaffForm agencies={agencies} />
     </div>
   );
 }

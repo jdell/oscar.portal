@@ -9,7 +9,7 @@ import { StaffTable } from "./staff-table";
 async function loadStaff(): Promise<StaffMember[]> {
   try {
     const result = await api.get<StaffMember[] | { items: StaffMember[] }>(
-      "/staffmembers",
+      "/staff-members",
     );
     if (Array.isArray(result)) return result;
     return result.items ?? [];

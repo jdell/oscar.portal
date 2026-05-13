@@ -54,6 +54,7 @@ export interface StaffMember {
   id: UUID;
   organizationId: UUID;
   agencyId?: UUID | null;
+  agencyName?: string | null;
   firstName: string;
   lastName: string;
   email: string;
@@ -62,6 +63,11 @@ export interface StaffMember {
   roles: string[];
   isActive: boolean;
   createdAt: string;
+}
+
+export interface StaffMemberDetail extends StaffMember {
+  agencies: Agency[];
+  permissions: Permission[];
 }
 
 export type ResourceCategory = "medical" | "healthy_living";
