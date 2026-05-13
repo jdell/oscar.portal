@@ -69,13 +69,17 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         return;
       }
 
-      const { access } = (await apiResponse.json()) as { access: string };
+      const { access, refreshToken, refreshTokenExpiry } = (await apiResponse.json()) as {
+        access: string;
+        refreshToken?: string | null;
+        refreshTokenExpiry?: string | null;
+      };
 
       // Step 3 — Store JWT in an httpOnly session cookie via Next.js
       const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ access }),
+        body: JSON.stringify({ access, refreshToken, refreshTokenExpiry }),
       });
 
       if (!sessionResponse.ok) {

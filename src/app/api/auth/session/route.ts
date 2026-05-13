@@ -5,6 +5,8 @@ import type { AuthSession } from "@/lib/types";
 
 const schema = z.object({
   access: z.string().min(1),
+  refreshToken: z.string().nullable().optional(),
+  refreshTokenExpiry: z.string().nullable().optional(),
 });
 
 interface StaffClaim {
@@ -42,8 +44,16 @@ export async function POST(request: Request) {
 
   const role = claims["role"] as string | undefined;
 
+  const tokenExpiresAt =
+    typeof claims["exp"] === "number"
+      ? new Date(claims["exp"] * 1000).toISOString()
+      : null;
+
   const session: AuthSession = {
     token: parsed.data.access,
+    refreshToken: parsed.data.refreshToken ?? null,
+    expiresAt: parsed.data.refreshTokenExpiry ?? null,
+    tokenExpiresAt,
     user: {
       id: String(claims["id"] ?? ""),
       email: (claims["username"] as string | undefined) ?? "",

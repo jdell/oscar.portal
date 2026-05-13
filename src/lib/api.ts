@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 
 const apiBaseUrl =
-  process.env.NEXT_PUBLIC_apiBaseUrl ?? "https://cpc-oscar-api-staging.azurewebsites.net";
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  "https://cpc-oscar-api-staging.azurewebsites.net";
 
 export const SESSION_COOKIE = "oscar_admin_session";
 
@@ -38,10 +39,7 @@ function buildUrl(
   path: string,
   searchParams?: FetchOptions["searchParams"],
 ): string {
-  const url = new URL(
-    path.startsWith("/") ? path : `/${path}`,
-    apiBaseUrl,
-  );
+  const url = new URL(path.startsWith("/") ? path : `/${path}`, apiBaseUrl);
   if (searchParams) {
     for (const [key, value] of Object.entries(searchParams)) {
       if (value === undefined || value === null || value === "") continue;
@@ -73,11 +71,12 @@ export async function apiFetch<T = unknown>(
   const response = await fetch(buildUrl(path, searchParams), init);
 
   if (!response.ok) {
+    const text = await response.text();
     let parsed: unknown;
     try {
-      parsed = await response.json();
+      parsed = JSON.parse(text);
     } catch {
-      parsed = await response.text();
+      parsed = text;
     }
     throw new ApiError(response.status, parsed);
   }

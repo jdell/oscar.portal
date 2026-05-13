@@ -40,7 +40,7 @@ const schema = z.object({
   name: z.string().min(1, "Name is required"),
   shortName: z.string().optional(),
   phone: z.string().optional(),
-  isActive: z.enum(["true", "false"]),
+  isActive: z.enum(["active", "inactive"]),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -50,6 +50,7 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Insurer | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Insurer | null>(null);
 
   const openNew = () => {
     setEditing(null);
@@ -62,9 +63,6 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
   };
 
   const handleDelete = async (insurer: Insurer) => {
-    if (!confirm(`Delete insurer "${insurer.name}"? This cannot be undone.`)) {
-      return;
-    }
     setDeletingId(insurer.id);
     try {
       const response = await fetch(`/api/insurers/${insurer.id}`, {
@@ -76,6 +74,7 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
         return;
       }
       toast.success("Insurer deleted");
+      setConfirmTarget(null);
       router.refresh();
     } catch {
       toast.error("Network error — try again");
@@ -140,7 +139,7 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(insurer);
+                      setConfirmTarget(insurer);
                     }}
                     disabled={deletingId === insurer.id}
                   >
@@ -180,6 +179,38 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
           router.refresh();
         }}
       />
+      <Dialog
+        open={confirmTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmTarget(null);
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete insurer?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete &ldquo;{confirmTarget?.name}&rdquo;.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmTarget(null)}
+              disabled={deletingId !== null}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deletingId !== null}
+              onClick={() => confirmTarget && handleDelete(confirmTarget)}
+            >
+              {deletingId !== null ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -204,7 +235,7 @@ function InsurerDialog({
       name: editing?.name ?? "",
       shortName: editing?.shortName ?? "",
       phone: editing?.phone ?? "",
-      isActive: editing?.isActive === false ? "false" : "true",
+      isActive: editing?.isActive === false ? "inactive" : "active",
     },
   });
 
@@ -215,7 +246,7 @@ function InsurerDialog({
         name: values.name,
         shortName: values.shortName || null,
         phone: values.phone || null,
-        isActive: values.isActive === "true",
+        isActive: values.isActive === "active",
       };
       const url = isEdit ? `/api/insurers/${editing?.id}` : "/api/insurers";
       const method = isEdit ? "PUT" : "POST";
@@ -281,8 +312,8 @@ function InsurerDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Inactive</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -9,7 +9,7 @@ export async function PUT(
   const { id } = await params;
   try {
     const body = await request.json();
-    const updated = await api.put<Insurer>(`/insurers/${id}`, body);
+    const updated = await api.put<Insurer>(`/insurers/${id}`, { ...body, id: Number(id) });
     return NextResponse.json(updated);
   } catch (error) {
     if (error instanceof ApiError) {

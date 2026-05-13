@@ -9,7 +9,8 @@ export interface Organization {
 export interface AuthSession {
   token: string;
   refreshToken?: string | null;
-  expiresAt?: string | null;
+  expiresAt?: string | null;        // refresh token expiry
+  tokenExpiresAt?: string | null;   // access token expiry
   user: {
     id: UUID;
     email: string;

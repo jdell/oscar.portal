@@ -8,6 +8,7 @@ async function loadInsurers(): Promise<Insurer[]> {
     const result = await api.get<Insurer[] | { items: Insurer[] }>("/insurers");
     return Array.isArray(result) ? result : (result.items ?? []);
   } catch (error) {
+    console.log("insurers fetch failed", error);
     if (error instanceof ApiError) {
       console.error("insurers fetch failed", error.status);
     }
