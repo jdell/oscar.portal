@@ -194,13 +194,22 @@ export interface Provider {
   participationType?: ProviderParticipationType | null;
 }
 
+export type InsurerType = "medicare" | "medicaid" | "private" | "other";
+
+export const INSURER_TYPES: InsurerType[] = [
+  "medicare",
+  "medicaid",
+  "private",
+  "other",
+];
+
 export interface Insurer {
-  id: UUID;
-  organizationId: UUID;
+  id: number;
   name: string;
+  type?: InsurerType | null;
+  coverage?: string | null;
+  /** @deprecated kept for legacy consumer pages — not in admin form */
   shortName?: string | null;
-  phone?: string | null;
-  isActive: boolean;
 }
 
 export interface Location {

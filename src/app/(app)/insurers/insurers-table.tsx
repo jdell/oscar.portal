@@ -7,9 +7,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  Briefcase,
+  Heart,
+  IdCard,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Shield,
+  Trash2,
+} from "lucide-react";
 import { DataTable } from "@/components/data-table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,23 +42,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Insurer } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import type { Insurer, InsurerType } from "@/lib/types";
+import { INSURER_TYPES } from "@/lib/types";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
-  shortName: z.string().optional(),
-  phone: z.string().optional(),
-  isActive: z.enum(["active", "inactive"]),
+  type: z.enum(["medicare", "medicaid", "private", "other"]).nullable(),
+  coverage: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
+
+const TYPE_LABEL: Record<InsurerType, string> = {
+  medicare: "Medicare",
+  medicaid: "Medicaid",
+  private: "Private",
+  other: "Other",
+};
+
+const TYPE_TAG_CLASS: Record<InsurerType, string> = {
+  medicare: "bg-sky-100 text-sky-700 ring-sky-200",
+  medicaid: "bg-emerald-100 text-emerald-700 ring-emerald-200",
+  private: "bg-amber-100 text-amber-700 ring-amber-200",
+  other: "bg-slate-100 text-slate-700 ring-slate-200",
+};
+
+type TypeFilter = "all" | InsurerType;
 
 export function InsurersTable({ data }: { data: Insurer[] }) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Insurer | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<Insurer | null>(null);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+
+  const counts = useMemo(() => {
+    const c: Record<InsurerType, number> = {
+      medicare: 0,
+      medicaid: 0,
+      private: 0,
+      other: 0,
+    };
+    for (const i of data) c[i.type ?? "other"]++;
+    return c;
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    if (typeFilter === "all") return data;
+    return data.filter((i) => (i.type ?? "other") === typeFilter);
+  }, [data, typeFilter]);
 
   const openNew = () => {
     setEditing(null);
@@ -93,22 +135,29 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
         ),
       },
       {
-        accessorKey: "shortName",
-        header: "Short name",
-        cell: ({ row }) => row.original.shortName ?? "—",
+        accessorKey: "type",
+        header: "Type",
+        cell: ({ row }) => {
+          const t = row.original.type ?? "other";
+          return (
+            <span
+              className={cn(
+                "inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+                TYPE_TAG_CLASS[t],
+              )}
+            >
+              {TYPE_LABEL[t]}
+            </span>
+          );
+        },
       },
       {
-        accessorKey: "phone",
-        header: "Phone",
-        cell: ({ row }) => row.original.phone ?? "—",
-      },
-      {
-        accessorKey: "isActive",
-        header: "Status",
+        accessorKey: "coverage",
+        header: "Coverage",
         cell: ({ row }) => (
-          <Badge variant={row.original.isActive ? "default" : "secondary"}>
-            {row.original.isActive ? "Active" : "Inactive"}
-          </Badge>
+          <span className="text-sm text-muted-foreground">
+            {row.original.coverage || "—"}
+          </span>
         ),
       },
       {
@@ -157,19 +206,74 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
   );
 
   return (
-    <>
-      <div className="mb-4 flex justify-end">
-        <Button onClick={openNew} className="bg-sky-600 hover:bg-sky-700">
-          <Plus className="mr-2 h-4 w-4" /> New insurer
-        </Button>
+    <div className="space-y-6">
+      {/* KPI cards */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          icon={<Shield size={16} />}
+          label="Total insurers"
+          value={data.length}
+          accent="indigo"
+        />
+        <KpiCard
+          icon={<IdCard size={16} />}
+          label="Medicare"
+          value={counts.medicare}
+          accent="sky"
+        />
+        <KpiCard
+          icon={<Heart size={16} />}
+          label="Medicaid"
+          value={counts.medicaid}
+          accent="emerald"
+        />
+        <KpiCard
+          icon={<Briefcase size={16} />}
+          label="Private"
+          value={counts.private}
+          accent="amber"
+        />
       </div>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Type</Label>
+          <Select
+            value={typeFilter}
+            onValueChange={(v) => setTypeFilter((v ?? "all") as TypeFilter)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {INSURER_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {TYPE_LABEL[t]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="ml-auto">
+          <Button onClick={openNew} className="bg-sky-600 hover:bg-sky-700">
+            <Plus className="mr-2 h-4 w-4" /> New insurer
+          </Button>
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
-        data={data}
+        data={filtered}
         searchKey="name"
-        searchPlaceholder="Search by name…"
-        emptyMessage="No insurers found."
+        searchPlaceholder="Search by name or coverage…"
+        emptyMessage={
+          typeFilter !== "all"
+            ? "No insurers match this filter."
+            : "No insurers yet — add your first one."
+        }
       />
+
       <InsurerDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -211,7 +315,41 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
+  );
+}
+
+function KpiCard({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  accent: "indigo" | "sky" | "emerald" | "amber";
+}) {
+  const wrap =
+    accent === "indigo"
+      ? "ring-indigo-200 bg-indigo-50/40 text-indigo-700"
+      : accent === "sky"
+        ? "ring-sky-200 bg-sky-50/40 text-sky-700"
+        : accent === "emerald"
+          ? "ring-emerald-200 bg-emerald-50/40 text-emerald-700"
+          : "ring-amber-200 bg-amber-50/40 text-amber-700";
+  return (
+    <div
+      className={cn("rounded-lg border bg-card p-4 ring-1 ring-inset", wrap)}
+    >
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide">
+        <span className="opacity-80">{icon}</span>
+        <span className="text-muted-foreground">{label}</span>
+      </div>
+      <div className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+        {value.toLocaleString()}
+      </div>
+    </div>
   );
 }
 
@@ -233,9 +371,8 @@ function InsurerDialog({
     resolver: zodResolver(schema),
     values: {
       name: editing?.name ?? "",
-      shortName: editing?.shortName ?? "",
-      phone: editing?.phone ?? "",
-      isActive: editing?.isActive === false ? "inactive" : "active",
+      type: editing?.type ?? null,
+      coverage: editing?.coverage ?? "",
     },
   });
 
@@ -243,10 +380,10 @@ function InsurerDialog({
     setSubmitting(true);
     try {
       const payload = {
+        id: editing?.id,
         name: values.name,
-        shortName: values.shortName || null,
-        phone: values.phone || null,
-        isActive: values.isActive === "active",
+        type: values.type,
+        coverage: values.coverage || null,
       };
       const url = isEdit ? `/api/insurers/${editing?.id}` : "/api/insurers";
       const method = isEdit ? "PUT" : "POST";
@@ -260,7 +397,9 @@ function InsurerDialog({
         toast.error(body.message ?? "Save failed");
         return;
       }
-      toast.success(isEdit ? "Insurer updated" : "Insurer created");
+      toast.success(
+        isEdit ? `Insurer ${values.name} saved` : "Insurer created",
+      );
       onSaved();
     } catch {
       toast.error("Network error — try again");
@@ -293,29 +432,39 @@ function InsurerDialog({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="shortName">Short name</Label>
-            <Input id="shortName" {...form.register("shortName")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" {...form.register("phone")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="isActive">Status</Label>
+            <Label htmlFor="type">Type</Label>
             <Select
-              value={form.watch("isActive")}
+              value={form.watch("type") ?? "__none__"}
               onValueChange={(v) => {
-                if (v) form.setValue("isActive", v as FormValues["isActive"]);
+                if (v === "__none__") {
+                  form.setValue("type", null);
+                } else if (v) {
+                  form.setValue("type", v as InsurerType);
+                }
               }}
             >
-              <SelectTrigger id="isActive">
-                <SelectValue />
+              <SelectTrigger id="type">
+                <SelectValue placeholder="Select a type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="__none__">Unspecified</SelectItem>
+                {INSURER_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {TYPE_LABEL[t]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="coverage">Coverage</Label>
+            <textarea
+              id="coverage"
+              rows={4}
+              className="w-full rounded-md border bg-background p-2 text-sm"
+              placeholder="Describe what this insurer covers…"
+              {...form.register("coverage")}
+            />
           </div>
           <DialogFooter>
             <Button
@@ -338,3 +487,4 @@ function InsurerDialog({
     </Dialog>
   );
 }
+
