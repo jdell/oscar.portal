@@ -115,6 +115,32 @@ export interface AgencyDetail extends Agency {
   director?: { id: UUID; name: string } | null;
 }
 
+export type PhoneNumberType =
+  | "mobile"
+  | "home"
+  | "work"
+  | "fax"
+  | "other";
+
+export interface PhoneNumber {
+  number: string;
+  type: PhoneNumberType;
+}
+
+export interface AgencyRole {
+  agencyId: UUID;
+  agencyName?: string | null;
+  roleId: UUID;
+  roleName?: string | null;
+}
+
+export interface User {
+  id: UUID;
+  staffMemberId: UUID;
+  username: string;
+  isAdmin: boolean;
+}
+
 export interface StaffMember {
   id: UUID;
   organizationId: UUID;
@@ -122,20 +148,58 @@ export interface StaffMember {
   agencyName?: string | null;
   firstName: string;
   lastName: string;
+  name?: string;
   email: string;
+  emailAddress?: string;
   phone?: string | null;
+  phoneNumbers?: PhoneNumber[];
   title?: string | null;
+  address?: Address | null;
+  supervisorId?: UUID | null;
+  medicalLiasonId?: UUID | null;
+  agencies?: AgencyRole[];
+  isSurveyEnabled?: boolean;
+  user?: User | null;
   roles: string[];
+  active?: boolean;
   isActive: boolean;
   createdAt: string;
 }
 
 export interface StaffMemberDetail extends StaffMember {
-  agencies: Agency[];
-  permissions: Permission[];
+  agenciesDetail?: Agency[];
+  permissionsDetail?: Permission[];
 }
 
 export type ResourceCategory = "medical" | "healthy_living";
+
+export interface MedicalResourceType {
+  id: UUID;
+  name: string;
+}
+
+export interface HealthyLivingResourceType {
+  id: UUID;
+  name: string;
+}
+
+export interface PartnerType {
+  id: UUID;
+  name: string;
+  description?: string | null;
+}
+
+export interface ProgramType {
+  id: UUID;
+  name: string;
+  description?: string | null;
+}
+
+export interface ResourceProvider {
+  id: UUID;
+  name: string;
+  active?: boolean;
+}
 
 export interface Resource {
   id: UUID;
@@ -150,6 +214,16 @@ export interface Resource {
   email?: string | null;
   website?: string | null;
   isActive: boolean;
+  active?: boolean;
+  address?: Address | null;
+  phoneNumbers?: PhoneNumber[];
+  resourceTypes?: UUID[];
+  insurers?: UUID[];
+  agencies?: UUID[];
+  reasons?: UUID[];
+  providers?: UUID[];
+  partnerTypes?: UUID[];
+  programTypes?: UUID[];
   createdAt: string;
 }
 
@@ -160,9 +234,13 @@ export interface ReferralReason {
 }
 
 export interface ResourceDetail extends Resource {
-  insurers: Insurer[];
-  agencies: Agency[];
-  referralReasons: ReferralReason[];
+  insurersDetail?: Insurer[];
+  agenciesDetail?: Agency[];
+  referralReasons?: ReferralReason[];
+  resourceTypesDetail?: MedicalResourceType[];
+  providersDetail?: ResourceProvider[];
+  partnerTypesDetail?: PartnerType[];
+  programTypesDetail?: ProgramType[];
 }
 
 export interface ProviderParticipationType {
@@ -214,9 +292,10 @@ export interface Insurer {
 
 export interface Location {
   id: UUID;
-  organizationId: UUID;
+  organizationId?: UUID;
   agencyId?: UUID | null;
   name: string;
+  description?: string | null;
   address1?: string | null;
   address2?: string | null;
   city?: string | null;

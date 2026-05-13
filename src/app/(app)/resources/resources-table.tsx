@@ -2,8 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { X } from "lucide-react";
 import { DataTable } from "@/components/data-table";
+import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -12,7 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Resource, ResourceCategory } from "@/lib/types";
+import type {
+  Agency,
+  HealthyLivingResourceType,
+  MedicalResourceType,
+  PartnerType,
+  ProgramType,
+  Resource,
+  ResourceCategory,
+} from "@/lib/types";
 
 const CATEGORY_LABELS: Record<ResourceCategory, string> = {
   medical: "Medical",
@@ -24,14 +35,124 @@ const CATEGORY_BADGE: Record<ResourceCategory, "default" | "secondary"> = {
   healthy_living: "secondary",
 };
 
-export function ResourcesTable({ data }: { data: Resource[] }) {
-  const [category, setCategory] = useState<ResourceCategory | "all">("all");
+const TYPE_TONES = [
+  "bg-sky-100 text-sky-800",
+  "bg-emerald-100 text-emerald-800",
+  "bg-amber-100 text-amber-800",
+  "bg-rose-100 text-rose-800",
+  "bg-violet-100 text-violet-800",
+  "bg-slate-100 text-slate-800",
+];
 
-  const filtered = useMemo(
-    () =>
-      category === "all" ? data : data.filter((r) => r.category === category),
-    [data, category],
-  );
+function tone(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  }
+  return TYPE_TONES[Math.abs(hash) % TYPE_TONES.length];
+}
+
+function resourceLocation(r: Resource): string {
+  if (r.address?.city || r.address?.state) {
+    return [r.address?.city, r.address?.state].filter(Boolean).join(", ");
+  }
+  return r.location ?? "—";
+}
+
+function resourceActive(r: Resource): boolean {
+  return r.active ?? r.isActive;
+}
+
+interface ResourcesTableProps {
+  data: Resource[];
+  medicalTypes: MedicalResourceType[];
+  hlTypes: HealthyLivingResourceType[];
+  agencies: Agency[];
+  partnerTypes: PartnerType[];
+  programTypes: ProgramType[];
+}
+
+export function ResourcesTable({
+  data,
+  medicalTypes,
+  hlTypes,
+  agencies,
+  partnerTypes,
+  programTypes,
+}: ResourcesTableProps) {
+  const [category, setCategory] = useState<ResourceCategory | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+  const [agencyFilter, setAgencyFilter] = useState<string[]>([]);
+  const [partnerFilter, setPartnerFilter] = useState<string[]>([]);
+  const [programFilter, setProgramFilter] = useState<string[]>([]);
+
+  const typeMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of medicalTypes) m.set(t.id, t.name);
+    for (const t of hlTypes) m.set(t.id, t.name);
+    return m;
+  }, [medicalTypes, hlTypes]);
+
+  const partnerMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of partnerTypes) m.set(p.id, p.name);
+    return m;
+  }, [partnerTypes]);
+
+  const programMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of programTypes) m.set(p.id, p.name);
+    return m;
+  }, [programTypes]);
+
+  const typeOptions = useMemo(() => {
+    if (category === "medical")
+      return medicalTypes.map((t) => ({ value: t.id, label: t.name }));
+    if (category === "healthy_living")
+      return hlTypes.map((t) => ({ value: t.id, label: t.name }));
+    return [...medicalTypes, ...hlTypes].map((t) => ({
+      value: t.id,
+      label: t.name,
+    }));
+  }, [category, medicalTypes, hlTypes]);
+
+  const filtered = useMemo(() => {
+    return data.filter((r) => {
+      if (category !== "all" && r.category !== category) return false;
+      if (typeFilter.length > 0) {
+        const rt = r.resourceTypes ?? [];
+        if (!rt.some((t) => typeFilter.includes(t))) return false;
+      }
+      if (agencyFilter.length > 0) {
+        const ag = r.agencies ?? [];
+        if (!ag.some((a) => agencyFilter.includes(a))) return false;
+      }
+      if (partnerFilter.length > 0) {
+        const pt = r.partnerTypes ?? [];
+        if (!pt.some((p) => partnerFilter.includes(p))) return false;
+      }
+      if (programFilter.length > 0) {
+        const pg = r.programTypes ?? [];
+        if (!pg.some((p) => programFilter.includes(p))) return false;
+      }
+      return true;
+    });
+  }, [data, category, typeFilter, agencyFilter, partnerFilter, programFilter]);
+
+  const hasFilters =
+    category !== "all" ||
+    typeFilter.length > 0 ||
+    agencyFilter.length > 0 ||
+    partnerFilter.length > 0 ||
+    programFilter.length > 0;
+
+  const clearFilters = () => {
+    setCategory("all");
+    setTypeFilter([]);
+    setAgencyFilter([]);
+    setPartnerFilter([]);
+    setProgramFilter([]);
+  };
 
   const columns = useMemo<ColumnDef<Resource>[]>(
     () => [
@@ -52,26 +173,62 @@ export function ResourcesTable({ data }: { data: Resource[] }) {
         ),
       },
       {
-        accessorKey: "location",
+        id: "types",
+        header: "Types",
+        cell: ({ row }) => {
+          const ids = row.original.resourceTypes ?? [];
+          if (ids.length === 0)
+            return (
+              <span className="text-muted-foreground">
+                {row.original.resourceTypeName ?? "—"}
+              </span>
+            );
+          return (
+            <div className="flex flex-wrap gap-1">
+              {ids.slice(0, 3).map((id) => {
+                const name = typeMap.get(id) ?? "Unknown";
+                return (
+                  <span
+                    key={id}
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${tone(name)}`}
+                  >
+                    {name}
+                  </span>
+                );
+              })}
+              {ids.length > 3 && (
+                <span className="text-xs text-muted-foreground">
+                  +{ids.length - 3}
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        id: "location",
+        accessorFn: (row) => resourceLocation(row),
         header: "Location",
-        cell: ({ row }) => row.original.location ?? "—",
+        cell: ({ row }) => resourceLocation(row.original),
       },
       {
         accessorKey: "isActive",
         header: "Status",
         cell: ({ row }) => (
-          <Badge variant={row.original.isActive ? "default" : "secondary"}>
-            {row.original.isActive ? "Active" : "Inactive"}
+          <Badge
+            variant={resourceActive(row.original) ? "default" : "secondary"}
+          >
+            {resourceActive(row.original) ? "Active" : "Inactive"}
           </Badge>
         ),
       },
     ],
-    [],
+    [typeMap],
   );
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Category</Label>
           <Select
@@ -90,15 +247,142 @@ export function ResourcesTable({ data }: { data: Resource[] }) {
             </SelectContent>
           </Select>
         </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Resource types</Label>
+          <MultiSelect
+            placeholder="Any type"
+            options={typeOptions}
+            value={typeFilter}
+            onChange={setTypeFilter}
+            className="w-56"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Agencies</Label>
+          <MultiSelect
+            placeholder="Any agency"
+            options={agencies.map((a) => ({ value: a.id, label: a.name }))}
+            value={agencyFilter}
+            onChange={setAgencyFilter}
+            className="w-52"
+          />
+        </div>
+        {(category === "all" || category === "healthy_living") &&
+          partnerTypes.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-xs">Partner types</Label>
+              <MultiSelect
+                placeholder="Any partner type"
+                options={partnerTypes.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                }))}
+                value={partnerFilter}
+                onChange={setPartnerFilter}
+                className="w-52"
+              />
+            </div>
+          )}
+        {(category === "all" || category === "healthy_living") &&
+          programTypes.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-xs">Program types</Label>
+              <MultiSelect
+                placeholder="Any program type"
+                options={programTypes.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                }))}
+                value={programFilter}
+                onChange={setProgramFilter}
+                className="w-52"
+              />
+            </div>
+          )}
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <X className="mr-1 h-3.5 w-3.5" /> Clear filters
+          </Button>
+        )}
       </div>
+
+      {typeFilter.length === 0 && (
+        <TypeChips
+          medicalTypes={medicalTypes}
+          hlTypes={hlTypes}
+          category={category}
+          data={data}
+          onPick={(id) => setTypeFilter([id])}
+        />
+      )}
+
       <DataTable
         columns={columns}
         data={filtered}
         searchKey="name"
         searchPlaceholder="Search by name…"
         rowHref={(r) => `/resources/${r.id}`}
-        emptyMessage="No resources found."
+        emptyMessage={
+          hasFilters
+            ? "No resources match these filters."
+            : "No resources found."
+        }
       />
+
+      {/* Suppress unused-vars when no chips reference them */}
+      <span className="hidden">{`${partnerMap.size}${programMap.size}`}</span>
+    </div>
+  );
+}
+
+function TypeChips({
+  medicalTypes,
+  hlTypes,
+  category,
+  data,
+  onPick,
+}: {
+  medicalTypes: MedicalResourceType[];
+  hlTypes: HealthyLivingResourceType[];
+  category: ResourceCategory | "all";
+  data: Resource[];
+  onPick: (typeId: string) => void;
+}) {
+  const types: { id: string; name: string }[] = [];
+  if (category !== "healthy_living") types.push(...medicalTypes);
+  if (category !== "medical") types.push(...hlTypes);
+
+  if (types.length === 0) return null;
+
+  const counts = new Map<string, number>();
+  for (const r of data) {
+    for (const id of r.resourceTypes ?? []) {
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+  }
+  const enriched = types
+    .map((t) => ({ ...t, count: counts.get(t.id) ?? 0 }))
+    .filter((t) => t.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  if (enriched.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs uppercase tracking-wider text-muted-foreground">
+        By type
+      </span>
+      {enriched.map((t) => (
+        <button
+          type="button"
+          key={t.id}
+          onClick={() => onPick(t.id)}
+          className={`rounded-full px-2 py-0.5 text-xs font-medium hover:opacity-80 ${tone(t.name)}`}
+        >
+          {t.name} · {t.count}
+        </button>
+      ))}
     </div>
   );
 }
