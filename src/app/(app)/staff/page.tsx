@@ -3,16 +3,15 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { api, ApiError } from "@/lib/api";
-import type { StaffMember } from "@/lib/types";
+import type { Agency, StaffMember } from "@/lib/types";
 import { StaffTable } from "./staff-table";
 
 async function loadStaff(): Promise<StaffMember[]> {
   try {
     const result = await api.get<StaffMember[] | { items: StaffMember[] }>(
-      "/staffmembers",
+      "/staff-members",
     );
-    if (Array.isArray(result)) return result;
-    return result.items ?? [];
+    return Array.isArray(result) ? result : (result.items ?? []);
   } catch (error) {
     if (error instanceof ApiError) {
       console.error("staff fetch failed", error.status, error.body);
@@ -21,8 +20,17 @@ async function loadStaff(): Promise<StaffMember[]> {
   }
 }
 
+async function loadAgencies(): Promise<Agency[]> {
+  try {
+    const result = await api.get<Agency[] | { items: Agency[] }>("/agencies");
+    return Array.isArray(result) ? result : (result.items ?? []);
+  } catch {
+    return [];
+  }
+}
+
 export default async function StaffPage() {
-  const staff = await loadStaff();
+  const [staff, agencies] = await Promise.all([loadStaff(), loadAgencies()]);
   return (
     <div>
       <PageHeader
@@ -36,7 +44,7 @@ export default async function StaffPage() {
           </Button>
         }
       />
-      <StaffTable data={staff} />
+      <StaffTable data={staff} agencies={agencies} />
     </div>
   );
 }

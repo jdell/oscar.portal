@@ -54,6 +54,7 @@ export interface StaffMember {
   id: UUID;
   organizationId: UUID;
   agencyId?: UUID | null;
+  agencyName?: string | null;
   firstName: string;
   lastName: string;
   email: string;
@@ -62,6 +63,11 @@ export interface StaffMember {
   roles: string[];
   isActive: boolean;
   createdAt: string;
+}
+
+export interface StaffDetail extends StaffMember {
+  agencies: Agency[];
+  permissions: Permission[];
 }
 
 export type ResourceCategory = "medical" | "healthy_living";
@@ -74,8 +80,32 @@ export interface Resource {
   resourceTypeId?: UUID | null;
   resourceTypeName?: string | null;
   description?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  locationName?: string | null;
+  services?: string | null;
+  hours?: string | null;
+  acceptingPatients?: boolean | null;
   isActive: boolean;
   createdAt: string;
+}
+
+export interface ReferralReason {
+  id: UUID;
+  name: string;
+  description?: string | null;
+}
+
+export interface ResourceDetail extends Resource {
+  insurers: Insurer[];
+  agencies: Agency[];
+  referralReasons: ReferralReason[];
 }
 
 export interface Provider {
@@ -87,14 +117,19 @@ export interface Provider {
   npi?: string | null;
   email?: string | null;
   phone?: string | null;
+  resourceId?: UUID | null;
+  resourceName?: string | null;
   isActive: boolean;
 }
+
+export type InsurerType = "medicare" | "medicaid" | "private";
 
 export interface Insurer {
   id: UUID;
   organizationId: UUID;
   name: string;
   shortName?: string | null;
+  type?: InsurerType | null;
   phone?: string | null;
   isActive: boolean;
 }
