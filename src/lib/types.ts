@@ -30,16 +30,73 @@ export interface PagedResult<T> {
 
 export type AgencyStatus = "active" | "inactive" | "pending";
 
+export interface Address {
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 export interface Agency {
   id: UUID;
   organizationId: UUID;
   name: string;
   shortName?: string | null;
   status: AgencyStatus;
+  active?: boolean;
+  address?: Address | null;
   primaryLocation?: string | null;
   staffCount: number;
+  directorId?: UUID | null;
+  directorName?: string | null;
+  permissions?: UUID[];
+  counties?: UUID[];
+  insurers?: UUID[];
+  healthyLivingResources?: UUID[];
+  medicalResources?: UUID[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AgencyCohort {
+  id: UUID;
+  pid: number;
+  numberOfSessions: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface AgencyLocation {
+  id: UUID;
+  name: string;
+  description?: string | null;
+  address1?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  isArchived?: boolean;
+}
+
+export interface County {
+  id: UUID;
+  name: string;
+  state?: string | null;
+}
+
+export interface AgencyFilterOptions {
+  states: string[];
+  counties: { id: UUID; name: string }[];
+  insurers: { id: UUID; name: string }[];
+}
+
+export interface AgencySummary {
+  total: number;
+  active: number;
+  newInPeriod: number;
+  newInPreviousPeriod: number;
+  sparkline7d: number[];
 }
 
 export interface AgencyDetail extends Agency {
@@ -47,8 +104,15 @@ export interface AgencyDetail extends Agency {
   phone?: string | null;
   website?: string | null;
   description?: string | null;
-  locations: Location[];
+  locations: AgencyLocation[];
   staff: StaffMember[];
+  cohorts?: AgencyCohort[];
+  permissionsDetail?: Permission[];
+  insurersDetail?: Insurer[];
+  countiesDetail?: County[];
+  healthyLivingResourcesDetail?: Resource[];
+  medicalResourcesDetail?: Resource[];
+  director?: { id: UUID; name: string } | null;
 }
 
 export interface StaffMember {
@@ -101,18 +165,33 @@ export interface ResourceDetail extends Resource {
   referralReasons: ReferralReason[];
 }
 
+export interface ProviderParticipationType {
+  id: number;
+  name: string;
+  description?: string | null;
+}
+
+export interface MedicalResourceAddress {
+  city?: string | null;
+  state?: string | null;
+}
+
+export interface MedicalResourceSummary {
+  id: number;
+  name: string;
+  address?: MedicalResourceAddress | null;
+  primaryContact?: string | null;
+}
+
 export interface Provider {
-  id: UUID;
-  organizationId: UUID;
-  firstName: string;
-  lastName: string;
-  specialty?: string | null;
-  npi?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  isActive: boolean;
-  linkedResourceId?: UUID | null;
-  linkedResourceName?: string | null;
+  id: number;
+  name: string;
+  emailAddress?: string | null;
+  medicalResourceId?: number | null;
+  providerParticipationTypeId?: number | null;
+  active: boolean;
+  medicalResource?: MedicalResourceSummary | null;
+  participationType?: ProviderParticipationType | null;
 }
 
 export interface Insurer {
