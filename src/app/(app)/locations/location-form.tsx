@@ -15,11 +15,15 @@ import type { Location } from "@/lib/types";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
-  address1: z.string().optional(),
+  description: z.string().optional(),
+  address1: z.string().min(1, "Street is required"),
   address2: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  postalCode: z.string().optional(),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  postalCode: z
+    .string()
+    .min(5, "ZIP must be at least 5 characters")
+    .max(10, "ZIP is too long"),
   isActive: z.boolean(),
 });
 
@@ -38,6 +42,7 @@ export function LocationForm({ initial }: LocationFormProps) {
     resolver: zodResolver(schema),
     defaultValues: {
       name: initial?.name ?? "",
+      description: initial?.description ?? "",
       address1: initial?.address1 ?? "",
       address2: initial?.address2 ?? "",
       city: initial?.city ?? "",
@@ -88,24 +93,53 @@ export function LocationForm({ initial }: LocationFormProps) {
               )}
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address1">Address line 1</Label>
+              <Label htmlFor="description">Description</Label>
+              <textarea
+                id="description"
+                rows={2}
+                className="w-full rounded-md border bg-background p-2 text-sm"
+                {...form.register("description")}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="address1">Street *</Label>
               <Input id="address1" {...form.register("address1")} />
+              {form.formState.errors.address1 && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.address1.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address2">Address line 2</Label>
               <Input id="address2" {...form.register("address2")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city">City *</Label>
               <Input id="city" {...form.register("city")} />
+              {form.formState.errors.city && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.city.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+              <Label htmlFor="state">State *</Label>
               <Input id="state" {...form.register("state")} />
+              {form.formState.errors.state && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.state.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="postalCode">Postal code</Label>
+              <Label htmlFor="postalCode">ZIP *</Label>
               <Input id="postalCode" {...form.register("postalCode")} />
+              {form.formState.errors.postalCode && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.postalCode.message}
+                </p>
+              )}
             </div>
             <div className="flex items-center justify-between rounded-md border px-3 py-2 md:mt-7">
               <Label htmlFor="isActive" className="cursor-pointer">

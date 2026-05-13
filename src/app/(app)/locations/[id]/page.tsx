@@ -51,6 +51,7 @@ export default async function LocationDetailPage({
         </Button>
         <PageHeader
           title={location.name}
+          description={location.description ?? undefined}
           action={
             <div className="flex items-center gap-2">
               <Badge variant={location.isActive ? "default" : "secondary"}>

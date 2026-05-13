@@ -177,7 +177,23 @@ export function ResourcesTable({
         header: "Types",
         cell: ({ row }) => {
           const ids = row.original.resourceTypes ?? [];
-          if (ids.length === 0)
+          const programIds =
+            row.original.category === "healthy_living"
+              ? (row.original.programTypes ?? [])
+              : [];
+          const allChips = [
+            ...ids.map((id) => ({
+              id,
+              name: typeMap.get(id) ?? "Unknown",
+              kind: "type" as const,
+            })),
+            ...programIds.map((id) => ({
+              id,
+              name: programMap.get(id) ?? "Unknown",
+              kind: "program" as const,
+            })),
+          ];
+          if (allChips.length === 0)
             return (
               <span className="text-muted-foreground">
                 {row.original.resourceTypeName ?? "—"}
@@ -185,25 +201,29 @@ export function ResourcesTable({
             );
           return (
             <div className="flex flex-wrap gap-1">
-              {ids.slice(0, 3).map((id) => {
-                const name = typeMap.get(id) ?? "Unknown";
-                return (
-                  <span
-                    key={id}
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${tone(name)}`}
-                  >
-                    {name}
-                  </span>
-                );
-              })}
-              {ids.length > 3 && (
+              {allChips.slice(0, 3).map((c) => (
+                <span
+                  key={`${c.kind}-${c.id}`}
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${tone(c.name)}`}
+                  title={c.kind === "program" ? "Program type" : "Resource type"}
+                >
+                  {c.name}
+                </span>
+              ))}
+              {allChips.length > 3 && (
                 <span className="text-xs text-muted-foreground">
-                  +{ids.length - 3}
+                  +{allChips.length - 3}
                 </span>
               )}
             </div>
           );
         },
+      },
+      {
+        id: "primaryContact",
+        accessorFn: (row) => row.primaryContact ?? "",
+        header: "Primary contact",
+        cell: ({ row }) => row.original.primaryContact ?? "—",
       },
       {
         id: "location",
@@ -223,7 +243,7 @@ export function ResourcesTable({
         ),
       },
     ],
-    [typeMap],
+    [typeMap, programMap],
   );
 
   return (
@@ -329,8 +349,8 @@ export function ResourcesTable({
         }
       />
 
-      {/* Suppress unused-vars when no chips reference them */}
-      <span className="hidden">{`${partnerMap.size}${programMap.size}`}</span>
+      {/* Suppress unused-vars for partnerMap (used in tooltip render path only when partnerTypes present) */}
+      <span className="hidden">{partnerMap.size}</span>
     </div>
   );
 }

@@ -224,6 +224,8 @@ export interface Resource {
   providers?: UUID[];
   partnerTypes?: UUID[];
   programTypes?: UUID[];
+  primaryContact?: string | null;
+  services?: string | null;
   createdAt: string;
 }
 
