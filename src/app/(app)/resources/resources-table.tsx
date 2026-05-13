@@ -19,6 +19,11 @@ const CATEGORY_LABELS: Record<ResourceCategory, string> = {
   healthy_living: "Healthy living",
 };
 
+const CATEGORY_BADGE: Record<ResourceCategory, string> = {
+  medical: "bg-blue-100 text-blue-800 hover:bg-blue-100",
+  healthy_living: "bg-green-100 text-green-800 hover:bg-green-100",
+};
+
 export function ResourcesTable({ data }: { data: Resource[] }) {
   const [category, setCategory] = useState<ResourceCategory | "all">("all");
 
@@ -41,13 +46,22 @@ export function ResourcesTable({ data }: { data: Resource[] }) {
         accessorKey: "category",
         header: "Category",
         cell: ({ row }) => (
-          <Badge variant="outline">{CATEGORY_LABELS[row.original.category]}</Badge>
+          <Badge className={CATEGORY_BADGE[row.original.category]}>
+            {CATEGORY_LABELS[row.original.category]}
+          </Badge>
         ),
       },
       {
-        accessorKey: "resourceTypeName",
-        header: "Type",
-        cell: ({ row }) => row.original.resourceTypeName ?? "—",
+        id: "location",
+        accessorFn: (row) =>
+          row.locationName ?? [row.city, row.state].filter(Boolean).join(", "),
+        header: "Location",
+        cell: ({ row }) => {
+          const loc =
+            row.original.locationName ??
+            [row.original.city, row.original.state].filter(Boolean).join(", ");
+          return loc || "—";
+        },
       },
       {
         accessorKey: "isActive",
@@ -57,6 +71,19 @@ export function ResourcesTable({ data }: { data: Resource[] }) {
             {row.original.isActive ? "Active" : "Inactive"}
           </Badge>
         ),
+      },
+      {
+        accessorKey: "acceptingPatients",
+        header: "Accepting",
+        cell: ({ row }) => {
+          const accepting = row.original.acceptingPatients;
+          if (accepting === null || accepting === undefined) return "—";
+          return (
+            <Badge variant={accepting ? "default" : "outline"}>
+              {accepting ? "Yes" : "No"}
+            </Badge>
+          );
+        },
       },
     ],
     [],
@@ -87,7 +114,7 @@ export function ResourcesTable({ data }: { data: Resource[] }) {
         data={filtered}
         searchKey="name"
         searchPlaceholder="Search by name…"
-        rowHref={(r) => `/resources/${r.id}`}
+        rowHref={(r) => `/resources/${r.id}?category=${r.category}`}
         emptyMessage="No resources found."
       />
     </div>

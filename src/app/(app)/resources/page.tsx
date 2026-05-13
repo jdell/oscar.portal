@@ -7,10 +7,14 @@ import type { Resource } from "@/lib/types";
 import { ResourcesTable } from "./resources-table";
 
 async function loadResources(): Promise<Resource[]> {
-  const safeFetch = async (path: string): Promise<Resource[]> => {
+  const safeFetch = async (
+    path: string,
+    category: Resource["category"],
+  ): Promise<Resource[]> => {
     try {
       const result = await api.get<Resource[] | { items: Resource[] }>(path);
-      return Array.isArray(result) ? result : (result.items ?? []);
+      const list = Array.isArray(result) ? result : (result.items ?? []);
+      return list.map((r) => ({ ...r, category }));
     } catch (error) {
       if (error instanceof ApiError) {
         console.error(`${path} fetch failed`, error.status);
@@ -20,14 +24,11 @@ async function loadResources(): Promise<Resource[]> {
   };
 
   const [medical, healthy] = await Promise.all([
-    safeFetch("/medicalresources"),
-    safeFetch("/healthylivingresources"),
+    safeFetch("/medical-resources", "medical"),
+    safeFetch("/healthy-living-resources", "healthy_living"),
   ]);
 
-  return [
-    ...medical.map((r) => ({ ...r, category: "medical" as const })),
-    ...healthy.map((r) => ({ ...r, category: "healthy_living" as const })),
-  ];
+  return [...medical, ...healthy];
 }
 
 export default async function ResourcesPage() {

@@ -1,23 +1,22 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { ResourceForm } from "../resource-form";
 
 export default function NewResourcePage() {
   return (
     <div className="max-w-2xl">
-      <PageHeader title="New resource" />
-      <Card>
-        <CardHeader>
-          <CardTitle>Resource form</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Form coming soon. Use the agencies form as a reference.
-        </CardContent>
-      </Card>
+      <Button asChild variant="ghost" size="sm" className="mb-2">
+        <Link href="/resources">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to resources
+        </Link>
+      </Button>
+      <PageHeader
+        title="New resource"
+        description="Add a medical or healthy living resource."
+      />
+      <ResourceForm />
     </div>
   );
 }
