@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/data-table";
@@ -18,12 +19,31 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
           <span className="font-medium">{formatName(row.original)}</span>
         ),
       },
-      { accessorKey: "specialty", header: "Specialty" },
-      { accessorKey: "npi", header: "NPI" },
+      {
+        accessorKey: "specialty",
+        header: "Specialty",
+        cell: ({ row }) => row.original.specialty ?? "—",
+      },
       {
         accessorKey: "email",
         header: "Email",
         cell: ({ row }) => row.original.email ?? "—",
+      },
+      {
+        accessorKey: "linkedResourceName",
+        header: "Linked resource",
+        cell: ({ row }) =>
+          row.original.linkedResourceId && row.original.linkedResourceName ? (
+            <Link
+              href={`/resources/${row.original.linkedResourceId}`}
+              className="text-sky-700 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {row.original.linkedResourceName}
+            </Link>
+          ) : (
+            "—"
+          ),
       },
       {
         accessorKey: "isActive",

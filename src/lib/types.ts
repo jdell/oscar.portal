@@ -110,6 +110,8 @@ export interface Provider {
   email?: string | null;
   phone?: string | null;
   isActive: boolean;
+  linkedResourceId?: UUID | null;
+  linkedResourceName?: string | null;
 }
 
 export interface Insurer {

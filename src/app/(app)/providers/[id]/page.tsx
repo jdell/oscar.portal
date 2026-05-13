@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { notFound } from "next/navigation";
+import { ArrowLeft, Mail, Phone, Stethoscope, IdCard } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,6 +10,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { api, ApiError } from "@/lib/api";
+import { formatName } from "@/lib/utils";
+import type { Provider } from "@/lib/types";
+
+async function loadProvider(id: string): Promise<Provider | null> {
+  try {
+    return await api.get<Provider>(`/providers/${id}`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
 
 export default async function ProviderDetailPage({
   params,
@@ -15,22 +29,87 @@ export default async function ProviderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const provider = await loadProvider(id);
+  if (!provider) notFound();
+
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/providers">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to providers
-        </Link>
-      </Button>
-      <PageHeader title="Provider detail" description={`ID: ${id}`} />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Details</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Provider detail view coming soon.
-        </CardContent>
-      </Card>
+      <div>
+        <Button asChild variant="ghost" size="sm" className="mb-2">
+          <Link href="/providers">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to providers
+          </Link>
+        </Button>
+        <PageHeader
+          title={formatName(provider)}
+          description={provider.specialty ?? undefined}
+          action={
+            <div className="flex items-center gap-2">
+              <Badge variant={provider.isActive ? "default" : "secondary"}>
+                {provider.isActive ? "Active" : "Inactive"}
+              </Badge>
+              <Button asChild variant="outline">
+                <Link href={`/providers/${provider.id}/edit`}>Edit</Link>
+              </Button>
+            </div>
+          }
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Contact</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <Row icon={<Mail size={14} />}>{provider.email ?? "—"}</Row>
+            <Row icon={<Phone size={14} />}>{provider.phone ?? "—"}</Row>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Practice</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <Row icon={<Stethoscope size={14} />}>
+              {provider.specialty ?? "—"}
+            </Row>
+            <Row icon={<IdCard size={14} />}>{provider.npi ?? "—"}</Row>
+            <Row label="Linked resource">
+              {provider.linkedResourceId && provider.linkedResourceName ? (
+                <Link
+                  href={`/resources/${provider.linkedResourceId}`}
+                  className="text-sky-700 hover:underline"
+                >
+                  {provider.linkedResourceName}
+                </Link>
+              ) : (
+                "—"
+              )}
+            </Row>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Row({
+  icon,
+  label,
+  children,
+}: {
+  icon?: React.ReactNode;
+  label?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="flex items-center gap-2 text-muted-foreground">
+        {icon}
+        {label}
+      </span>
+      <span className="text-foreground truncate">{children}</span>
     </div>
   );
 }
