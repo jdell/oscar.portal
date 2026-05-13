@@ -8,6 +8,7 @@ import {
   Lock,
   BarChart3,
   Settings,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 
@@ -54,6 +55,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/locations",
     icon: MapPin,
     matches: (p) => p.startsWith("/locations"),
+  },
+  {
+    label: "Surveys",
+    href: "/surveys",
+    icon: ClipboardList,
+    matches: (p) => p.startsWith("/surveys"),
   },
   {
     label: "Permissions",

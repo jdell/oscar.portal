@@ -327,3 +327,58 @@ export interface ReportSummary {
   totalResources: number;
   activeReferralsLast30d: number;
 }
+
+// ---- Surveys ----
+
+export enum SurveyLanguage {
+  English = 2,
+  Spanish = 3,
+}
+
+export enum SurveyQuestionType {
+  Radio = 0,
+  Checkbox = 1,
+  Text = 2,
+  Info = 3,
+}
+
+export interface SurveyQuestionTranslation {
+  id: number;
+  surveyQuestionId: number;
+  languageId: number;
+  text: string;
+}
+
+export interface SurveyAnswerTranslation {
+  id: number;
+  surveyAnswerId: number;
+  languageId: number;
+  text: string;
+}
+
+export interface SurveyAnswer {
+  id: number;
+  surveyQuestionId: number;
+  value: number;
+  text: string;
+  translations: SurveyAnswerTranslation[];
+}
+
+export interface SurveyQuestion {
+  id: number;
+  surveyId: number;
+  text: string;
+  type: number;
+  answers: SurveyAnswer[];
+  translations: SurveyQuestionTranslation[];
+}
+
+export interface Survey {
+  id: number;
+  name: string;
+  description: string;
+  active: boolean;
+  organizationId?: number;
+  updatedAt?: string;
+  questions: SurveyQuestion[];
+}
