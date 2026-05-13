@@ -9,7 +9,7 @@ async function loadInsurers(): Promise<Insurer[]> {
     return Array.isArray(result) ? result : (result.items ?? []);
   } catch (error) {
     if (error instanceof ApiError) {
-      console.error("insurers fetch failed", error.status);
+      console.error("insurers fetch failed", error.status, error.body);
     }
     return [];
   }
