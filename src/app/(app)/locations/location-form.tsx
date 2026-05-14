@@ -10,8 +10,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { Location } from "@/lib/types";
+import { DEFAULT_STATE, US_STATES } from "@/lib/us-states";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -46,7 +54,7 @@ export function LocationForm({ initial }: LocationFormProps) {
       address1: initial?.address1 ?? "",
       address2: initial?.address2 ?? "",
       city: initial?.city ?? "",
-      state: initial?.state ?? "",
+      state: initial?.state ?? DEFAULT_STATE,
       postalCode: initial?.postalCode ?? "",
       isActive: initial?.isActive ?? true,
     },
@@ -125,7 +133,23 @@ export function LocationForm({ initial }: LocationFormProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="state">State *</Label>
-              <Input id="state" {...form.register("state")} />
+              <Select
+                value={form.watch("state") || ""}
+                onValueChange={(v) =>
+                  form.setValue("state", (v as string) ?? "")
+                }
+              >
+                <SelectTrigger id="state" className="w-full">
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {US_STATES.map((s) => (
+                    <SelectItem key={s.code} value={s.code}>
+                      {s.code} — {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {form.formState.errors.state && (
                 <p className="text-xs text-destructive">
                   {form.formState.errors.state.message}
