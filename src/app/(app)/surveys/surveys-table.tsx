@@ -195,6 +195,13 @@ export function SurveysTable({ data }: { data: Survey[] }) {
         emptyMessage="No surveys yet — create your first one."
       />
 
+      {filtered.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          In total there {filtered.length === 1 ? "is" : "are"}{" "}
+          {filtered.length} survey{filtered.length === 1 ? "" : "s"}.
+        </p>
+      )}
+
       <Dialog
         open={confirmTarget !== null}
         onOpenChange={(open) => {
