@@ -1,11 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Building2 } from "lucide-react";
+import { Briefcase, Building2, Plus } from "lucide-react";
 import { DataTable } from "@/components/data-table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -61,7 +64,11 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
   const columns = useMemo<ColumnDef<ProviderRow>[]>(
     () => [
       {
-        accessorKey: "name",
+        id: "name",
+        accessorFn: (row) =>
+          `${row.name} ${row.emailAddress ?? ""} ${row.specialtyLabel ?? ""} ${
+            row.medicalResource?.name ?? ""
+          }`,
         header: "Name",
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
@@ -143,6 +150,29 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
     [],
   );
 
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
+          <Briefcase
+            className="h-10 w-10 text-muted-foreground"
+            aria-hidden
+          />
+          <h3 className="text-lg font-semibold">No providers yet</h3>
+          <p className="max-w-md text-sm text-muted-foreground">
+            Add your first provider to start tracking participation types and
+            their medical resource affiliations.
+          </p>
+          <Button asChild className="mt-2 bg-sky-600 hover:bg-sky-700">
+            <Link href="/providers/new">
+              <Plus className="mr-2 h-4 w-4" /> Add provider
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -216,9 +246,9 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
         columns={columns}
         data={filtered}
         searchKey="name"
-        searchPlaceholder="Search by name…"
+        searchPlaceholder="Search by name, email, specialty, or resource…"
         rowHref={(p) => `/providers/${p.id}/edit`}
-        emptyMessage="No providers found."
+        emptyMessage="No providers match these filters."
       />
     </div>
   );

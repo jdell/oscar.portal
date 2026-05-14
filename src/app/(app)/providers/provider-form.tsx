@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -55,13 +56,14 @@ export function ProviderForm({
 }: ProviderFormProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const isEdit = Boolean(initial?.id);
 
   const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: initial?.name ?? "",
-      emailAddress: initial?.emailAddress ?? "",
+      emailAddress: initial?.emailAddress?.trim() ?? "",
       providerParticipationTypeId: initial?.providerParticipationTypeId ?? 0,
       medicalResourceId: initial?.medicalResourceId ?? 0,
       active: initial?.active ?? true,
@@ -106,24 +108,17 @@ export function ProviderForm({
 
   async function onDelete() {
     if (!initial?.id) return;
-    if (!confirm(`Delete provider "${initial.name}"? This cannot be undone.`))
+    const res = await fetch(`/api/providers/${initial.id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      toast.error(body.message ?? "Delete failed");
       return;
-    setSubmitting(true);
-    try {
-      const res = await fetch(`/api/providers/${initial.id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        toast.error(body.message ?? "Delete failed");
-        return;
-      }
-      toast.success("Provider deleted");
-      router.push("/providers");
-      router.refresh();
-    } finally {
-      setSubmitting(false);
     }
+    toast.success("Provider deleted successfully");
+    router.push("/providers");
+    router.refresh();
   }
 
   const ptId = form.watch("providerParticipationTypeId");
@@ -233,7 +228,7 @@ export function ProviderForm({
                   variant="ghost"
                   className="text-destructive hover:bg-destructive/10"
                   disabled={submitting}
-                  onClick={onDelete}
+                  onClick={() => setConfirmDelete(true)}
                 >
                   <Trash2 className="mr-2 h-4 w-4" /> Delete
                 </Button>
@@ -262,6 +257,19 @@ export function ProviderForm({
           </div>
         </form>
       </CardContent>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete provider?"
+        description={
+          initial?.name
+            ? `This will permanently delete "${initial.name}". This action cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        destructive
+        onConfirm={onDelete}
+      />
     </Card>
   );
 }
