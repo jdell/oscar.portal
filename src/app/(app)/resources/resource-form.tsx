@@ -59,6 +59,10 @@ const schema = z.object({
   interviewCheck: z.boolean().default(false),
   publicTransportation: z.boolean().default(false),
   bilingualStaff: z.boolean().default(false),
+  eligibilityRequirements: z.boolean().default(false),
+  applicationProcess: z.boolean().default(false),
+  feesAssociated: z.boolean().default(false),
+  targetAudience: z.string().optional(),
   address: z.object({
     address1: z.string().min(1, "Address line 1 is required"),
     address2: z.string().optional(),
@@ -146,6 +150,10 @@ export function ResourceForm({
       interviewCheck: initial?.interviewCheck ?? false,
       publicTransportation: initial?.publicTransportation ?? false,
       bilingualStaff: initial?.bilingualStaff ?? false,
+      eligibilityRequirements: initial?.eligibilityRequirements ?? false,
+      applicationProcess: initial?.applicationProcess ?? false,
+      feesAssociated: initial?.feesAssociated ?? false,
+      targetAudience: initial?.targetAudience ?? "",
       address: {
         address1:
           initial?.address?.address1 ?? initial?.address?.street ?? "",
@@ -346,47 +354,63 @@ export function ResourceForm({
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              <Label htmlFor="activityType">Activity type</Label>
-              <Input
-                id="activityType"
-                placeholder="e.g. Yoga, Nutrition class"
-                {...form.register("activityType")}
-              />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="activityType">Activity type</Label>
+                <Input
+                  id="activityType"
+                  placeholder="e.g. Yoga, Nutrition class"
+                  {...form.register("activityType")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="targetAudience">Target audience</Label>
+                <Input
+                  id="targetAudience"
+                  placeholder="e.g. Adults 65+"
+                  {...form.register("targetAudience")}
+                />
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {isMedical && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Features</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-              {(
-                [
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Features</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+            {(isMedical
+              ? ([
                   ["acceptingNewClients", "Accepting new clients"],
                   ["indigentCare", "Indigent care"],
                   ["slidingFeeScale", "Sliding fee scale"],
                   ["interviewCheck", "Interview check"],
                   ["publicTransportation", "Near public transport"],
                   ["bilingualStaff", "Bilingual staff"],
-                ] as const
-              ).map(([key, label]) => (
-                <label key={key} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={Boolean(form.watch(key))}
-                    onCheckedChange={(v) => form.setValue(key, Boolean(v))}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ] as const)
+              : ([
+                  ["acceptingNewClients", "Accepting new clients"],
+                  ["eligibilityRequirements", "Eligibility requirements"],
+                  ["applicationProcess", "Application process"],
+                  ["feesAssociated", "Fees associated"],
+                  ["publicTransportation", "Near public transport"],
+                  ["bilingualStaff", "Bilingual staff"],
+                ] as const)
+            ).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={Boolean(form.watch(key))}
+                  onCheckedChange={(v) => form.setValue(key, Boolean(v))}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

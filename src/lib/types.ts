@@ -227,6 +227,10 @@ export interface Resource {
   interviewCheck?: boolean;
   publicTransportation?: boolean;
   bilingualStaff?: boolean;
+  eligibilityRequirements?: boolean;
+  applicationProcess?: boolean;
+  feesAssociated?: boolean;
+  targetAudience?: string | null;
   address?: Address | null;
   phoneNumbers?: PhoneNumber[];
   resourceTypes?: UUID[];
