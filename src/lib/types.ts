@@ -344,6 +344,81 @@ export interface ReportSummary {
   activeReferralsLast30d: number;
 }
 
+// ---- Admin Dashboard ----
+
+export type DashboardPeriod = "7d" | "30d" | "90d" | "365d";
+
+export const DASHBOARD_PERIODS: DashboardPeriod[] = [
+  "7d",
+  "30d",
+  "90d",
+  "365d",
+];
+
+export const DASHBOARD_PERIOD_LABEL: Record<DashboardPeriod, string> = {
+  "7d": "7d",
+  "30d": "30d",
+  "90d": "90d",
+  "365d": "365d",
+};
+
+export interface DashboardKpi {
+  value: number;
+  previousValue: number;
+  sparkline7d: number[];
+}
+
+export interface DashboardHeroKpis {
+  activeParticipants: DashboardKpi;
+  activeStaff: DashboardKpi;
+  newReferrals: DashboardKpi;
+  openFollowUpsNext7Days: DashboardKpi;
+}
+
+export type DashboardEntityKey =
+  | "agencies"
+  | "staff"
+  | "providers"
+  | "healthy-living-resources"
+  | "medical-resources"
+  | "referral-reasons";
+
+export interface DashboardEntitySummary {
+  key: DashboardEntityKey;
+  total: number;
+  active: number;
+  newInPeriod: number;
+  newInPreviousPeriod: number;
+  sparkline7d: number[];
+}
+
+export interface DashboardOverview {
+  period: string;
+  hero: DashboardHeroKpis;
+  entitySummaries: DashboardEntitySummary[];
+}
+
+export type DashboardTrendGranularity = "day" | "week" | "month";
+
+export interface DashboardTrendPoint {
+  date: string;
+  participantsEnrolled: number;
+  referralsCreated: number;
+}
+
+export interface DashboardTrends {
+  period: string;
+  granularity: DashboardTrendGranularity;
+  points: DashboardTrendPoint[];
+}
+
+export interface DashboardActivityEvent {
+  entityKey: DashboardEntityKey;
+  entityId: number | string;
+  displayName: string;
+  createdAt: string;
+}
+
 // ---- Surveys ----
 
 export enum SurveyLanguage {

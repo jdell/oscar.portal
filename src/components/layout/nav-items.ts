@@ -9,6 +9,7 @@ import {
   BarChart3,
   Settings,
   ClipboardList,
+  LayoutDashboard,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +21,12 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    matches: (p) => p === "/" || p.startsWith("/dashboard"),
+  },
   {
     label: "Agencies",
     href: "/agencies",
