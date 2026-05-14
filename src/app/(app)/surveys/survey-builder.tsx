@@ -366,7 +366,11 @@ function QuestionCard({ index, form, onRemove }: QuestionCardProps) {
                   }
                 >
                   <SelectTrigger id={`q-type-${index}`}>
-                    <SelectValue />
+                    <SelectValue>
+                      {QUESTION_TYPES.find(
+                        (t) => t.value === form.watch(`questions.${index}.type`),
+                      )?.label}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {QUESTION_TYPES.map((t) => (
