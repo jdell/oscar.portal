@@ -1,12 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
-import { X } from "lucide-react";
+import { Eye, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { DataTable } from "@/components/data-table";
 import { MultiSelect } from "@/components/multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -15,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { formatDate } from "@/lib/utils";
 import type {
   Agency,
@@ -50,10 +59,12 @@ interface AgenciesTableProps {
 }
 
 export function AgenciesTable({ data, filterOptions }: AgenciesTableProps) {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [stateFilter, setStateFilter] = useState<string[]>([]);
   const [countyFilter, setCountyFilter] = useState<string[]>([]);
   const [insurerFilter, setInsurerFilter] = useState<string[]>([]);
+  const [pendingDelete, setPendingDelete] = useState<Agency | null>(null);
 
   const filtered = useMemo(() => {
     return data.filter((a) => {
@@ -88,6 +99,20 @@ export function AgenciesTable({ data, filterOptions }: AgenciesTableProps) {
     setStateFilter([]);
     setCountyFilter([]);
     setInsurerFilter([]);
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    const response = await fetch(`/api/agencies/${pendingDelete.id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      toast.error(body.message ?? "Delete failed");
+      return;
+    }
+    toast.success("Agency deleted");
+    router.refresh();
   };
 
   const columns = useMemo<ColumnDef<Agency>[]>(
@@ -171,8 +196,49 @@ export function AgenciesTable({ data, filterOptions }: AgenciesTableProps) {
           </span>
         ),
       },
+      {
+        id: "actions",
+        header: "",
+        cell: ({ row }) => {
+          const agency = row.original;
+          return (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="flex justify-end"
+            >
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button variant="ghost" size="icon-sm" aria-label="Actions">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => router.push(`/agencies/${agency.id}`)}
+                  >
+                    <Eye className="mr-2 h-4 w-4" /> View
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push(`/agencies/${agency.id}/edit`)}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => setPendingDelete(agency)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
+      },
     ],
-    [],
+    [router],
   );
 
   return (
@@ -249,6 +315,19 @@ export function AgenciesTable({ data, filterOptions }: AgenciesTableProps) {
             ? "No agencies match these filters."
             : "No agencies yet."
         }
+      />
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        title="Delete agency?"
+        description={
+          pendingDelete
+            ? `This will permanently delete "${pendingDelete.name}". This action cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        destructive
+        onConfirm={handleDelete}
       />
     </div>
   );
