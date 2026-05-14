@@ -7,7 +7,8 @@ import { RolesEditor } from "./roles-editor";
 async function loadRoles(): Promise<Role[]> {
   try {
     const result = await api.get<Role[] | { items: Role[] }>("/roles");
-    return Array.isArray(result) ? result : (result.items ?? []);
+    const raw = Array.isArray(result) ? result : (result.items ?? []);
+    return raw.map((r) => ({ ...r, permissions: r.permissions ?? [] }));
   } catch (error) {
     if (error instanceof ApiError) {
       console.error("roles fetch failed", error.status);
@@ -18,10 +19,17 @@ async function loadRoles(): Promise<Role[]> {
 
 async function loadPermissions(): Promise<Permission[]> {
   try {
-    const result = await api.get<Permission[] | { items: Permission[] }>(
-      "/permissions",
-    );
-    return Array.isArray(result) ? result : (result.items ?? []);
+    const result = await api.get<
+      { id: number; code: string; description: string; category?: string }[]
+      | { items: { id: number; code: string; description: string; category?: string }[] }
+    >("/permissions");
+    const raw = Array.isArray(result) ? result : (result.items ?? []);
+    return raw.map((p) => ({
+      id: String(p.id),
+      key: p.code,
+      description: p.description ?? "",
+      category: p.category ?? "",
+    }));
   } catch (error) {
     if (error instanceof ApiError) {
       console.error("permissions fetch failed", error.status);

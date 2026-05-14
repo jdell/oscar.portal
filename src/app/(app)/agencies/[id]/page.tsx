@@ -8,8 +8,13 @@ import {
   MapPin,
   Map as MapIcon,
   UserCog,
+  Building2,
+  Users,
+  CalendarDays,
+  Landmark,
+  ExternalLink,
+  ChevronDown,
 } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -28,7 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api";
-import { formatDate, formatName } from "@/lib/utils";
+import { formatDate, formatName, cn } from "@/lib/utils";
 import type { AgencyDetail } from "@/lib/types";
 import { ForceSyncButton } from "./force-sync-button";
 
@@ -62,6 +67,29 @@ function mapUrl(agency: AgencyDetail): string | null {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
 }
 
+const AVATAR_ACCENTS = [
+  "bg-sky-500",
+  "bg-violet-500",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-teal-500",
+];
+
+function avatarColor(name: string): string {
+  const code = [...name].reduce((a, c) => a + c.charCodeAt(0), 0);
+  return AVATAR_ACCENTS[code % AVATAR_ACCENTS.length];
+}
+
+function agencyInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase();
+}
+
 export default async function AgencyDetailPage({
   params,
 }: {
@@ -74,135 +102,187 @@ export default async function AgencyDetailPage({
   const active = isActive(agency);
   const map = mapUrl(agency);
 
+  const locationCount = agency.locations?.length ?? 0;
+  const cohortCount = agency.cohorts?.length ?? 0;
+  const staffCount = agency.staff?.length ?? 0;
+  const countyCount = agency.countiesDetail?.length ?? 0;
+
   return (
     <div className="space-y-6">
-      <div>
-        <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link href="/agencies">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to agencies
-          </Link>
-        </Button>
-        <PageHeader
-          title={agency.name}
-          description={agency.shortName ?? undefined}
-          action={
-            <div className="flex items-center gap-2">
-              <Badge variant={active ? "default" : "secondary"}>
-                {active ? "Active" : "Inactive"}
-              </Badge>
+      {/* Breadcrumb */}
+      <Button asChild variant="ghost" size="sm" className="-ml-2">
+        <Link href="/agencies">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to agencies
+        </Link>
+      </Button>
+
+      {/* Hero band */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            {/* Left: avatar + name */}
+            <div className="flex items-center gap-4">
+              <div
+                className={cn(
+                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white",
+                  avatarColor(agency.name),
+                )}
+                aria-hidden="true"
+              >
+                {agencyInitials(agency.name)}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold tracking-tight">
+                    {agency.name}
+                  </h1>
+                  <span
+                    className={cn(
+                      "inline-block h-2.5 w-2.5 rounded-full",
+                      active ? "bg-emerald-500" : "bg-zinc-400",
+                    )}
+                    title={active ? "Active" : "Inactive"}
+                    aria-label={active ? "Active" : "Inactive"}
+                  />
+                </div>
+                {(agency.shortName || agency.createdAt) && (
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {[agency.shortName, agency.createdAt ? `Created ${formatDate(agency.createdAt)}` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
+                {/* Stat chips */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <StatChip
+                    icon={<Building2 size={13} />}
+                    label="Locations"
+                    count={locationCount}
+                  />
+                  <StatChip
+                    icon={<CalendarDays size={13} />}
+                    label="Cohorts"
+                    count={cohortCount}
+                  />
+                  <StatChip
+                    icon={<Users size={13} />}
+                    label="Staff"
+                    count={staffCount}
+                  />
+                  <StatChip
+                    icon={<Landmark size={13} />}
+                    label="Counties"
+                    count={countyCount}
+                  />
+                </div>
+              </div>
+            </div>
+            {/* Right: actions */}
+            <div className="flex shrink-0 items-center gap-2">
               <ForceSyncButton agencyId={agency.id} />
               <Button asChild variant="outline">
                 <Link href={`/agencies/${agency.id}/edit`}>Edit</Link>
               </Button>
             </div>
-          }
-        />
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Tabs defaultValue="info">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="info">Information</TabsTrigger>
-          <TabsTrigger value="locations">
-            Locations ({agency.locations?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="cohorts">
-            Cohorts ({agency.cohorts?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="permissions">
-            Permissions ({agency.permissionsDetail?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="insurances">
-            Insurances ({agency.insurersDetail?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="counties">
-            Counties ({agency.countiesDetail?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="hl-resources">
-            HL Resources ({agency.healthyLivingResourcesDetail?.length ?? 0})
-          </TabsTrigger>
-          <TabsTrigger value="medical-resources">
-            Medical Resources ({agency.medicalResourcesDetail?.length ?? 0})
-          </TabsTrigger>
-        </TabsList>
+      {/* Two-column body: sidebar + tabs */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        {/* Sidebar */}
+        <aside className="shrink-0 space-y-0 lg:w-72">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Contact</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <ContactRow
+                icon={<Mail size={14} />}
+                href={agency.email ? `mailto:${agency.email}` : undefined}
+              >
+                {agency.email ?? "—"}
+              </ContactRow>
+              <ContactRow
+                icon={<Phone size={14} />}
+                href={agency.phone ? `tel:${agency.phone}` : undefined}
+              >
+                {agency.phone ?? "—"}
+              </ContactRow>
+              <ContactRow
+                icon={<Globe size={14} />}
+                href={agency.website ?? undefined}
+                external
+              >
+                {agency.website ?? "—"}
+              </ContactRow>
+            </CardContent>
 
-        <TabsContent value="info">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Identity</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <Row label="Name">{agency.name}</Row>
-                <Row label="Short name">{agency.shortName ?? "—"}</Row>
-                <Row label="Created">{formatDate(agency.createdAt)}</Row>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Contact</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <Row icon={<Mail size={14} />}>{agency.email ?? "—"}</Row>
-                <Row icon={<Phone size={14} />}>{agency.phone ?? "—"}</Row>
-                <Row icon={<Globe size={14} />}>{agency.website ?? "—"}</Row>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Executive Director</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <Row icon={<UserCog size={14} />}>
+            <Separator />
+
+            <CardHeader className="pb-3 pt-4">
+              <CardTitle className="text-sm font-semibold">
+                Executive Director
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <UserCog size={14} className="shrink-0" />
+                <span className="text-foreground">
                   {agency.director?.name ??
                     agency.directorName ??
                     "Not assigned"}
-                </Row>
-              </CardContent>
-            </Card>
-            <Card className="md:col-span-3">
-              <CardHeader>
-                <CardTitle className="text-sm">Address</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <p>{agency.address?.street ?? "—"}</p>
-                    <p className="text-muted-foreground">
-                      {[
-                        agency.address?.city,
-                        agency.address?.state,
-                        agency.address?.zipCode,
-                      ]
-                        .filter(Boolean)
-                        .join(", ") || "—"}
-                    </p>
-                  </div>
-                  {map && (
-                    <Button asChild variant="outline" size="sm">
-                      <a
-                        href={map}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="Open in Google Maps"
-                      >
-                        <MapIcon className="mr-2 h-4 w-4" /> Open in Maps
-                      </a>
-                    </Button>
-                  )}
-                </div>
-                {agency.description && (
-                  <p className="mt-4 text-muted-foreground">
-                    {agency.description}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+                </span>
+              </div>
+            </CardContent>
 
-        <TabsContent value="locations">
-          <Card>
-            <CardContent className="pt-6">
+            <Separator />
+
+            <CardHeader className="pb-3 pt-4">
+              <CardTitle className="text-sm font-semibold">Address</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="space-y-0.5">
+                <p>{agency.address?.street ?? "—"}</p>
+                <p className="text-muted-foreground">
+                  {[
+                    agency.address?.city,
+                    agency.address?.state,
+                    agency.address?.zipCode,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "—"}
+                </p>
+              </div>
+              {map && (
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <a href={map} target="_blank" rel="noopener noreferrer">
+                    <MapIcon className="mr-2 h-4 w-4" /> Open in Maps
+                  </a>
+                </Button>
+              )}
+              {agency.description && (
+                <p className="text-muted-foreground">{agency.description}</p>
+              )}
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* Accordion sections */}
+        <div className="min-w-0 flex-1 space-y-2">
+
+          <AccordionSection
+            icon={<Building2 size={15} />}
+            label="Locations"
+            count={locationCount}
+          >
+            {locationCount === 0 ? (
+              <EmptyState
+                icon={<Building2 size={32} />}
+                label="No locations yet"
+                description="Locations assigned to this agency will appear here."
+              />
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -216,43 +296,40 @@ export default async function AgencyDetailPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(agency.locations ?? []).length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="h-20 text-center text-muted-foreground"
-                      >
-                        No locations for this agency.
+                  {agency.locations!.map((loc) => (
+                    <TableRow key={loc.id}>
+                      <TableCell className="font-medium">{loc.name}</TableCell>
+                      <TableCell>{loc.description ?? "—"}</TableCell>
+                      <TableCell>{loc.address1 ?? "—"}</TableCell>
+                      <TableCell>{loc.city ?? "—"}</TableCell>
+                      <TableCell>{loc.state ?? "—"}</TableCell>
+                      <TableCell>{loc.postalCode ?? "—"}</TableCell>
+                      <TableCell>
+                        {!loc.isArchived ? (
+                          <Badge>Active</Badge>
+                        ) : (
+                          <Badge variant="secondary">Archived</Badge>
+                        )}
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    agency.locations.map((loc) => (
-                      <TableRow key={loc.id}>
-                        <TableCell className="font-medium">{loc.name}</TableCell>
-                        <TableCell>{loc.description ?? "—"}</TableCell>
-                        <TableCell>{loc.address1 ?? "—"}</TableCell>
-                        <TableCell>{loc.city ?? "—"}</TableCell>
-                        <TableCell>{loc.state ?? "—"}</TableCell>
-                        <TableCell>{loc.postalCode ?? "—"}</TableCell>
-                        <TableCell>
-                          {!loc.isArchived ? (
-                            <Badge>Active</Badge>
-                          ) : (
-                            <Badge variant="secondary">Archived</Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
+          </AccordionSection>
 
-        <TabsContent value="cohorts">
-          <Card>
-            <CardContent className="pt-6">
+          <AccordionSection
+            icon={<CalendarDays size={15} />}
+            label="Cohorts"
+            count={cohortCount}
+          >
+            {cohortCount === 0 ? (
+              <EmptyState
+                icon={<CalendarDays size={32} />}
+                label="No cohorts yet"
+                description="Cohorts linked to this agency will appear here."
+              />
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -263,63 +340,92 @@ export default async function AgencyDetailPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(agency.cohorts ?? []).length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="h-20 text-center text-muted-foreground"
-                      >
-                        No cohorts for this agency.
-                      </TableCell>
+                  {agency.cohorts!.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">Cohort {c.pid}</TableCell>
+                      <TableCell>{c.numberOfSessions}</TableCell>
+                      <TableCell>{formatDate(c.startDate)}</TableCell>
+                      <TableCell>{formatDate(c.endDate)}</TableCell>
                     </TableRow>
-                  ) : (
-                    agency.cohorts!.map((c) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-medium">
-                          Cohort {c.pid}
-                        </TableCell>
-                        <TableCell>{c.numberOfSessions}</TableCell>
-                        <TableCell>{formatDate(c.startDate)}</TableCell>
-                        <TableCell>{formatDate(c.endDate)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
+          </AccordionSection>
 
-        <TabsContent value="permissions">
-          <Card>
-            <CardContent className="pt-6">
-              {(agency.permissionsDetail ?? []).length === 0 ? (
-                <p className="py-4 text-sm text-muted-foreground">
-                  No permissions for this agency.
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {agency.permissionsDetail!.map((p) => (
-                    <Badge
-                      key={p.id}
-                      variant="outline"
-                      title={p.description}
-                    >
-                      {p.description ?? p.key}
-                    </Badge>
+          <AccordionSection
+            icon={<Users size={15} />}
+            label="Staff"
+            count={staffCount}
+          >
+            {staffCount === 0 ? (
+              <EmptyState
+                icon={<Users size={32} />}
+                label="No staff members yet"
+                description="Staff assigned to this agency will appear here."
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {agency.staff!.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-medium">{formatName(s)}</TableCell>
+                      <TableCell>{s.title ?? "—"}</TableCell>
+                      <TableCell>{s.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={s.isActive ? "default" : "secondary"}>
+                          {s.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </TableBody>
+              </Table>
+            )}
+          </AccordionSection>
 
-        <TabsContent value="insurances">
-          <Card>
-            <CardContent className="pt-6">
+          <AccordionSection
+            label="Permissions"
+            count={agency.permissionsDetail?.length ?? 0}
+          >
+            {(agency.permissionsDetail ?? []).length === 0 ? (
+              <EmptyState
+                icon="🔐"
+                label="No permissions yet"
+                description="Permissions granted to this agency will appear here."
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {agency.permissionsDetail!.map((p) => (
+                  <Badge key={p.id} variant="outline" title={p.description}>
+                    {p.description ?? p.key}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </AccordionSection>
+
+          <AccordionSection
+            label="Insurances"
+            count={agency.insurersDetail?.length ?? 0}
+          >
+            {(agency.insurersDetail ?? []).length === 0 ? (
+              <EmptyState
+                icon="🏥"
+                label="No insurances yet"
+                description="Insurance plans accepted by this agency will appear here."
+              />
+            ) : (
               <SimpleList
-                items={agency.insurersDetail ?? []}
-                empty="No insurances for this agency."
+                items={agency.insurersDetail!}
                 renderItem={(i) => (
                   <>
                     <span className="font-medium">{i.name}</span>
@@ -331,16 +437,23 @@ export default async function AgencyDetailPage({
                   </>
                 )}
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
+          </AccordionSection>
 
-        <TabsContent value="counties">
-          <Card>
-            <CardContent className="pt-6">
+          <AccordionSection
+            icon={<Landmark size={15} />}
+            label="Counties"
+            count={countyCount}
+          >
+            {countyCount === 0 ? (
+              <EmptyState
+                icon={<Landmark size={32} />}
+                label="No counties yet"
+                description="Counties served by this agency will appear here."
+              />
+            ) : (
               <SimpleList
-                items={agency.countiesDetail ?? []}
-                empty="No counties for this agency."
+                items={agency.countiesDetail!}
                 renderItem={(c) => (
                   <>
                     <span className="font-medium">{c.name}</span>
@@ -352,87 +465,180 @@ export default async function AgencyDetailPage({
                   </>
                 )}
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
+          </AccordionSection>
 
-        <TabsContent value="hl-resources">
-          <Card>
-            <CardContent className="pt-6">
+          <AccordionSection
+            icon={<MapPin size={15} />}
+            label="HL Resources"
+            count={agency.healthyLivingResourcesDetail?.length ?? 0}
+          >
+            {(agency.healthyLivingResourcesDetail ?? []).length === 0 ? (
+              <EmptyState
+                icon={<MapPin size={32} />}
+                label="No healthy living resources yet"
+                description="Resources linked to this agency will appear here."
+              />
+            ) : (
               <SimpleList
-                items={agency.healthyLivingResourcesDetail ?? []}
-                empty="No healthy living resources for this agency."
+                items={agency.healthyLivingResourcesDetail!}
+                icon={<MapPin size={14} />}
                 renderItem={(r) => (
-                  <Link
-                    href={`/resources/${r.id}`}
-                    className="font-medium hover:underline"
-                  >
+                  <Link href={`/resources/${r.id}`} className="font-medium hover:underline">
                     {r.name}
                   </Link>
                 )}
-                icon={<MapPin size={14} />}
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
+          </AccordionSection>
 
-        <TabsContent value="medical-resources">
-          <Card>
-            <CardContent className="pt-6">
+          <AccordionSection
+            icon={<MapPin size={15} />}
+            label="Medical Resources"
+            count={agency.medicalResourcesDetail?.length ?? 0}
+          >
+            {(agency.medicalResourcesDetail ?? []).length === 0 ? (
+              <EmptyState
+                icon={<MapPin size={32} />}
+                label="No medical resources yet"
+                description="Medical resources linked to this agency will appear here."
+              />
+            ) : (
               <SimpleList
-                items={agency.medicalResourcesDetail ?? []}
-                empty="No medical resources for this agency."
+                items={agency.medicalResourcesDetail!}
+                icon={<MapPin size={14} />}
                 renderItem={(r) => (
-                  <Link
-                    href={`/resources/${r.id}`}
-                    className="font-medium hover:underline"
-                  >
+                  <Link href={`/resources/${r.id}`} className="font-medium hover:underline">
                     {r.name}
                   </Link>
                 )}
-                icon={<MapPin size={14} />}
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            )}
+          </AccordionSection>
 
-      {agency.staff && agency.staff.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">
-              Staff ({agency.staff.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agency.staff.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">
-                      {formatName(s)}
-                    </TableCell>
-                    <TableCell>{s.title ?? "—"}</TableCell>
-                    <TableCell>{s.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={s.isActive ? "default" : "secondary"}>
-                        {s.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Helper components ────────────────────────────────────────────────────────
+
+function AccordionSection({
+  icon,
+  label,
+  count,
+  children,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <details
+      open={count > 0}
+      className="group rounded-lg border bg-card text-card-foreground shadow-sm"
+    >
+      <summary className="flex cursor-pointer select-none list-none items-center justify-between p-4 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-2 text-muted-foreground">
+          {icon}
+          <span className="text-foreground">{label}</span>
+          {count > 0 && <CountBadge n={count} />}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+      </summary>
+      <div className="border-t px-4 pb-4 pt-3">{children}</div>
+    </details>
+  );
+}
+
+function StatChip({
+  icon,
+  label,
+  count,
+  href,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+  href?: string;
+}) {
+  const content = (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+        count === 0
+          ? "border-border text-muted-foreground"
+          : "border-border bg-muted/50 text-foreground hover:bg-muted",
+      )}
+    >
+      {icon}
+      {count} {label}
+    </span>
+  );
+  if (href && count > 0) {
+    return <a href={href}>{content}</a>;
+  }
+  return content;
+}
+
+function CountBadge({ n }: { n: number }) {
+  return (
+    <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary/10 px-1 text-[10px] font-semibold text-primary">
+      {n}
+    </span>
+  );
+}
+
+function ContactRow({
+  icon,
+  href,
+  external,
+  children,
+}: {
+  icon: React.ReactNode;
+  href?: string;
+  external?: boolean;
+  children: React.ReactNode;
+}) {
+  const isLink = !!href && children !== "—";
+  return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <span className="shrink-0">{icon}</span>
+      {isLink ? (
+        <a
+          href={href}
+          {...(external
+            ? { target: "_blank", rel: "noopener noreferrer" }
+            : {})}
+          className="truncate text-foreground hover:underline flex items-center gap-1"
+        >
+          {children}
+          {external && <ExternalLink size={11} className="shrink-0 opacity-60" />}
+        </a>
+      ) : (
+        <span className="truncate text-foreground">{children}</span>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({
+  icon,
+  label,
+  description,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-12 text-center">
+      <span className="text-muted-foreground/40 [&>svg]:size-8">{icon}</span>
+      <p className="font-medium text-foreground">{label}</p>
+      {description && (
+        <p className="text-sm text-muted-foreground">{description}</p>
       )}
     </div>
   );
@@ -440,18 +646,13 @@ export default async function AgencyDetailPage({
 
 function SimpleList<T extends { id: string | number }>({
   items,
-  empty,
   renderItem,
   icon,
 }: {
   items: T[];
-  empty: string;
   renderItem: (item: T) => React.ReactNode;
   icon?: React.ReactNode;
 }) {
-  if (items.length === 0) {
-    return <p className="py-4 text-sm text-muted-foreground">{empty}</p>;
-  }
   return (
     <ul className="space-y-2">
       {items.map((item) => (
@@ -464,25 +665,5 @@ function SimpleList<T extends { id: string | number }>({
         </li>
       ))}
     </ul>
-  );
-}
-
-function Row({
-  icon,
-  label,
-  children,
-}: {
-  icon?: React.ReactNode;
-  label?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="flex items-center gap-2 text-muted-foreground">
-        {icon}
-        {label}
-      </span>
-      <span className="truncate text-foreground">{children}</span>
-    </div>
   );
 }
