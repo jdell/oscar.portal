@@ -50,6 +50,19 @@ export default async function PermissionsPage() {
         title="Permissions"
         description="Roles and the permissions assigned to each one."
       />
+      {permissions.length === 0 && roles.length > 0 && (
+        <Card>
+          <CardContent className="py-4 text-sm text-muted-foreground">
+            No permissions catalog returned by the API. The portal expects
+            permissions with{" "}
+            <code className="text-xs">{`{ id, key, description, category }`}</code>{" "}
+            (the loader maps Angular&apos;s <code>code</code> field to{" "}
+            <code>key</code> and defaults <code>category</code> to an empty
+            string). If the API is the Angular contract only, role editing
+            here will appear empty until the backend exposes the richer shape.
+          </CardContent>
+        </Card>
+      )}
       {roles.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
