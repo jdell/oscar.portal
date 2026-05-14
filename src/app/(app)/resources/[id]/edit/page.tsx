@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { api, ApiError } from "@/lib/api";
 import type { Resource } from "@/lib/types";
+import { loadResourceLookups } from "@/lib/resource-lookups";
 import { ResourceForm } from "../../resource-form";
 
 async function loadResource(id: string): Promise<Resource | null> {
@@ -33,6 +34,8 @@ export default async function EditResourcePage({
   const resource = await loadResource(id);
   if (!resource) notFound();
 
+  const lookups = await loadResourceLookups(resource.category);
+
   return (
     <div className="max-w-3xl">
       <Button asChild variant="ghost" size="sm" className="mb-2">
@@ -41,7 +44,15 @@ export default async function EditResourcePage({
         </Link>
       </Button>
       <PageHeader title="Edit resource" description={resource.name} />
-      <ResourceForm initial={resource} />
+      <ResourceForm
+        initial={resource}
+        resourceTypeOptions={lookups.resourceTypes}
+        insurerOptions={lookups.insurers}
+        agencyOptions={lookups.agencies}
+        reasonOptions={lookups.reasons}
+        partnerTypeOptions={lookups.partnerTypes}
+        programTypeOptions={lookups.programTypes}
+      />
     </div>
   );
 }

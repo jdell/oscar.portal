@@ -157,7 +157,11 @@ export function ResourcesTable({
   const columns = useMemo<ColumnDef<Resource>[]>(
     () => [
       {
-        accessorKey: "name",
+        id: "name",
+        accessorFn: (row) =>
+          `${row.name} ${row.primaryContact ?? ""} ${
+            row.emailAddress ?? row.email ?? ""
+          }`,
         header: "Name",
         cell: ({ row }) => (
           <span className="font-medium">{row.original.name}</span>
@@ -171,6 +175,28 @@ export function ResourcesTable({
             {CATEGORY_LABELS[row.original.category]}
           </Badge>
         ),
+      },
+      {
+        id: "phone",
+        header: "Phone",
+        cell: ({ row }) => {
+          const phones = row.original.phoneNumbers ?? [];
+          if (phones.length > 0) {
+            return (
+              <div className="flex flex-col text-sm">
+                {phones.slice(0, 2).map((p, i) => (
+                  <span key={i}>
+                    {p.number}
+                    <span className="ml-1 text-xs text-muted-foreground capitalize">
+                      ({p.type})
+                    </span>
+                  </span>
+                ))}
+              </div>
+            );
+          }
+          return row.original.phone ?? "—";
+        },
       },
       {
         id: "types",
@@ -340,12 +366,14 @@ export function ResourcesTable({
         columns={columns}
         data={filtered}
         searchKey="name"
-        searchPlaceholder="Search by name…"
+        searchPlaceholder="Search by name, contact, or email…"
         rowHref={(r) => `/resources/${r.id}`}
         emptyMessage={
           hasFilters
-            ? "No resources match these filters."
-            : "No resources found."
+            ? "No resources match these filters. Try clearing filters."
+            : data.length === 0
+              ? "No resources yet. Use the New resource button to add one."
+              : "No resources found."
         }
       />
 
