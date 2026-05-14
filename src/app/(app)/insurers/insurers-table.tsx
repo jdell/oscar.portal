@@ -128,7 +128,8 @@ export function InsurersTable({ data }: { data: Insurer[] }) {
   const columns = useMemo<ColumnDef<Insurer>[]>(
     () => [
       {
-        accessorKey: "name",
+        id: "name",
+        accessorFn: (row) => `${row.name} ${row.coverage ?? ""}`,
         header: "Name",
         cell: ({ row }) => (
           <span className="font-medium">{row.original.name}</span>
