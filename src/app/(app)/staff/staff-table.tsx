@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { KeyRound, Plus } from "lucide-react";
+import { IdCard, KeyRound, Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -202,6 +204,26 @@ export function StaffTable({ data }: { data: StaffMember[] }) {
     [togglingId, optimistic],
   );
 
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
+          <IdCard className="h-10 w-10 text-muted-foreground" aria-hidden />
+          <h3 className="text-lg font-semibold">No staff members yet</h3>
+          <p className="max-w-md text-sm text-muted-foreground">
+            Add your first staff member to start managing access and survey
+            enrollment.
+          </p>
+          <Button asChild className="mt-2 bg-sky-600 hover:bg-sky-700">
+            <Link href="/staff/new">
+              <Plus className="mr-2 h-4 w-4" /> Add staff
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-end gap-3">
@@ -230,7 +252,7 @@ export function StaffTable({ data }: { data: StaffMember[] }) {
         searchKey="name"
         searchPlaceholder="Search by name…"
         rowHref={(s) => `/staff/${s.id}`}
-        emptyMessage="No staff members found."
+        emptyMessage="No staff members match these filters."
       />
       <CredentialsDialog
         staff={credentialsFor}

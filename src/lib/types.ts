@@ -32,6 +32,8 @@ export type AgencyStatus = "active" | "inactive" | "pending";
 
 export interface Address {
   street?: string | null;
+  address1?: string | null;
+  address2?: string | null;
   city?: string | null;
   state?: string | null;
   zipCode?: string | null;

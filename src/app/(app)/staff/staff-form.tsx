@@ -25,8 +25,11 @@ import type {
   Role,
   StaffMember,
 } from "@/lib/types";
+import { DEFAULT_STATE, US_STATES } from "@/lib/us-states";
 
 const PHONE_TYPES: PhoneNumberType[] = ["mobile", "home", "work", "fax", "other"];
+
+const PHONE_REGEX = /^[+()\-\s\d.x]{7,}$/;
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -35,14 +38,23 @@ const schema = z.object({
   active: z.boolean(),
   isSurveyEnabled: z.boolean(),
   address: z.object({
-    street: z.string().optional(),
-    city: z.string().optional(),
-    state: z.string().optional(),
-    zipCode: z.string().optional(),
+    address1: z.string().min(1, "Address line 1 is required"),
+    address2: z.string().optional(),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    zipCode: z
+      .string()
+      .min(5, "ZIP must be at least 5 characters"),
   }),
   phoneNumbers: z.array(
     z.object({
-      number: z.string().optional(),
+      number: z
+        .string()
+        .optional()
+        .refine(
+          (v) => !v || PHONE_REGEX.test(v),
+          "Enter a valid phone number",
+        ),
       type: z.enum(PHONE_TYPES),
     }),
   ),
@@ -91,9 +103,11 @@ export function StaffForm({
       active: initialActive,
       isSurveyEnabled: initial?.isSurveyEnabled ?? false,
       address: {
-        street: initial?.address?.street ?? "",
+        address1:
+          initial?.address?.address1 ?? initial?.address?.street ?? "",
+        address2: initial?.address?.address2 ?? "",
         city: initial?.address?.city ?? "",
-        state: initial?.address?.state ?? "",
+        state: initial?.address?.state ?? DEFAULT_STATE,
         zipCode: initial?.address?.zipCode ?? "",
       },
       phoneNumbers:
@@ -123,7 +137,13 @@ export function StaffForm({
     try {
       const payload = {
         ...values,
-        phoneNumbers: values.phoneNumbers.filter((p) => p.number?.trim()),
+        address: {
+          ...values.address,
+          street: values.address.address1,
+        },
+        phoneNumbers: values.phoneNumbers.filter(
+          (p) => p.number?.trim() && PHONE_REGEX.test(p.number),
+        ),
         supervisorId: values.supervisorId || null,
         medicalLiasonId: values.medicalLiasonId || null,
       };
@@ -135,13 +155,16 @@ export function StaffForm({
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
+        if (response.status === 409) {
+          toast.error("A staff member with this email already exists.");
+          return;
+        }
         const body = await response.json().catch(() => ({}));
         toast.error(body.message ?? "Save failed");
         return;
       }
-      const data = (await response.json()) as StaffMember;
       toast.success(isEdit ? "Staff updated" : "Staff member created");
-      router.push(`/staff/${data.id ?? initial?.id}`);
+      router.push("/staff");
       router.refresh();
     } catch {
       toast.error("Network error — try again");
@@ -233,20 +256,60 @@ export function StaffForm({
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="street">Street</Label>
-              <Input id="street" {...form.register("address.street")} />
+              <Label htmlFor="address1">Address line 1 *</Label>
+              <Input id="address1" {...form.register("address.address1")} />
+              {form.formState.errors.address?.address1 && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.address.address1.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="address2">Address line 2</Label>
+              <Input id="address2" {...form.register("address.address2")} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label htmlFor="city">City *</Label>
               <Input id="city" {...form.register("address.city")} />
+              {form.formState.errors.address?.city && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.address.city.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input id="state" {...form.register("address.state")} />
+              <Label htmlFor="state">State *</Label>
+              <Select
+                value={form.watch("address.state") || ""}
+                onValueChange={(v) =>
+                  form.setValue("address.state", (v as string) ?? "")
+                }
+              >
+                <SelectTrigger id="state" className="w-full">
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {US_STATES.map((s) => (
+                    <SelectItem key={s.code} value={s.code}>
+                      {s.code} — {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.formState.errors.address?.state && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.address.state.message}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="zipCode">ZIP</Label>
+              <Label htmlFor="zipCode">ZIP *</Label>
               <Input id="zipCode" {...form.register("address.zipCode")} />
+              {form.formState.errors.address?.zipCode && (
+                <p className="text-xs text-destructive">
+                  {form.formState.errors.address.zipCode.message}
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -270,10 +333,22 @@ export function StaffForm({
           ) : (
             phones.fields.map((field, index) => (
               <div key={field.id} className="grid gap-2 md:grid-cols-[1fr_180px_auto]">
-                <Input
-                  placeholder="Phone number"
-                  {...form.register(`phoneNumbers.${index}.number` as const)}
-                />
+                <div>
+                  <Input
+                    placeholder="Phone number"
+                    {...form.register(
+                      `phoneNumbers.${index}.number` as const,
+                    )}
+                  />
+                  {form.formState.errors.phoneNumbers?.[index]?.number && (
+                    <p className="mt-1 text-xs text-destructive">
+                      {
+                        form.formState.errors.phoneNumbers[index]?.number
+                          ?.message
+                      }
+                    </p>
+                  )}
+                </div>
                 <Select
                   value={form.watch(`phoneNumbers.${index}.type`)}
                   onValueChange={(v) => {
