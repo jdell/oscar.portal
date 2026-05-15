@@ -162,7 +162,7 @@ export interface StaffMember {
   agencies?: AgencyRole[];
   isSurveyEnabled?: boolean;
   user?: User | null;
-  roles: string[];
+  roles?: string[];
   active?: boolean;
   isActive: boolean;
   createdAt: string;

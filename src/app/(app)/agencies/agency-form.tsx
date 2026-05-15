@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -199,7 +199,13 @@ export function AgencyForm({
                 }
               >
                 <SelectTrigger id="director" className="w-full">
-                  <SelectValue placeholder="Select director" />
+                  <SelectValue placeholder="Select director">
+                    {(value: unknown) =>
+                      !value
+                        ? null
+                        : (staff.find((s) => String(s.id) === String(value))?.name ?? null)
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {staff.length === 0 ? (
@@ -415,6 +421,7 @@ export function AgencyForm({
             disabled={submitting}
             className="bg-sky-600 hover:bg-sky-700"
           >
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {submitting ? "Saving…" : isEdit ? "Save changes" : "Create agency"}
           </Button>
         </div>

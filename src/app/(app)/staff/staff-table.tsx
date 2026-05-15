@@ -38,7 +38,13 @@ function staffActive(s: StaffMember): boolean {
   return s.active ?? s.isActive;
 }
 
-export function StaffTable({ data }: { data: StaffMember[] }) {
+export function StaffTable({
+  data,
+  phoneTypes,
+}: {
+  data: StaffMember[];
+  phoneTypes: Map<number, string>;
+}) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [credentialsFor, setCredentialsFor] = useState<StaffMember | null>(
@@ -124,7 +130,7 @@ export function StaffTable({ data }: { data: StaffMember[] }) {
                   <span key={i} className="text-sm">
                     {p.number}
                     <span className="ml-1 text-xs text-muted-foreground capitalize">
-                      ({p.type})
+                      ({phoneTypes.get(Number(p.type)) ?? p.type})
                     </span>
                   </span>
                 ))}

@@ -49,7 +49,7 @@ export async function loadResources(
   category: "medical" | "healthy-living",
 ): Promise<LookupOption[]> {
   const path =
-    category === "medical" ? "/resources/medical" : "/resources/healthy-living";
+    category === "medical" ? "/medical-resources" : "/healthy-living-resources";
   const list = await safeGet<Resource[] | { items: Resource[] }>(path, []);
   const items = Array.isArray(list) ? list : list.items ?? [];
   return items.map((r) => ({ id: r.id, name: r.name }));

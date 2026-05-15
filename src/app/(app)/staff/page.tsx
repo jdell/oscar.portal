@@ -6,6 +6,17 @@ import { api, ApiError } from "@/lib/api";
 import type { StaffMember, User } from "@/lib/types";
 import { StaffTable } from "./staff-table";
 
+async function loadPhoneNumberTypes(): Promise<Map<number, string>> {
+  try {
+    const items = await api.get<{ id: number; name: string }[]>(
+      "/phone-number-types",
+    );
+    return new Map(items.map((t) => [t.id, t.name]));
+  } catch {
+    return new Map();
+  }
+}
+
 async function loadStaff(): Promise<StaffMember[]> {
   const [staff, users] = await Promise.all([
     api
@@ -30,7 +41,10 @@ async function loadStaff(): Promise<StaffMember[]> {
 }
 
 export default async function StaffPage() {
-  const staff = await loadStaff();
+  const [staff, phoneTypes] = await Promise.all([
+    loadStaff(),
+    loadPhoneNumberTypes(),
+  ]);
   return (
     <div>
       <PageHeader
@@ -44,7 +58,7 @@ export default async function StaffPage() {
           </Button>
         }
       />
-      <StaffTable data={staff} />
+      <StaffTable data={staff} phoneTypes={phoneTypes} />
     </div>
   );
 }

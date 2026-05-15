@@ -70,6 +70,7 @@ interface ResourcesTableProps {
   agencies: Agency[];
   partnerTypes: PartnerType[];
   programTypes: ProgramType[];
+  phoneTypes: Map<number, string>;
 }
 
 export function ResourcesTable({
@@ -79,6 +80,7 @@ export function ResourcesTable({
   agencies,
   partnerTypes,
   programTypes,
+  phoneTypes,
 }: ResourcesTableProps) {
   const [category, setCategory] = useState<ResourceCategory | "all">("all");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
@@ -188,7 +190,7 @@ export function ResourcesTable({
                   <span key={i}>
                     {p.number}
                     <span className="ml-1 text-xs text-muted-foreground capitalize">
-                      ({p.type})
+                      ({phoneTypes.get(Number(p.type)) ?? p.type})
                     </span>
                   </span>
                 ))}

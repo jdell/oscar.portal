@@ -114,13 +114,13 @@ export function StaffForm({
         initial?.phoneNumbers && initial.phoneNumbers.length > 0
           ? initial.phoneNumbers.map((p) => ({ number: p.number, type: p.type }))
           : [],
-      supervisorId: initial?.supervisorId ?? "",
-      medicalLiasonId: initial?.medicalLiasonId ?? "",
+      supervisorId: initial?.supervisorId != null ? String(initial.supervisorId) : "",
+      medicalLiasonId: initial?.medicalLiasonId != null ? String(initial.medicalLiasonId) : "",
       agencies:
         initial?.agencies && initial.agencies.length > 0
           ? initial.agencies.map((a) => ({
-              agencyId: a.agencyId,
-              roleId: a.roleId,
+              agencyId: String(a.agencyId),
+              roleId: String(a.roleId),
             }))
           : [],
     },
@@ -144,8 +144,12 @@ export function StaffForm({
         phoneNumbers: values.phoneNumbers.filter(
           (p) => p.number?.trim() && PHONE_REGEX.test(p.number),
         ),
-        supervisorId: values.supervisorId || null,
-        medicalLiasonId: values.medicalLiasonId || null,
+        agencies: values.agencies.map((a) => ({
+          agencyId: Number(a.agencyId),
+          roleId: Number(a.roleId),
+        })),
+        supervisorId: values.supervisorId ? Number(values.supervisorId) : null,
+        medicalLiasonId: values.medicalLiasonId ? Number(values.medicalLiasonId) : null,
       };
       const url = isEdit ? `/api/staff/${initial?.id}` : "/api/staff";
       const method = isEdit ? "PUT" : "POST";
@@ -414,11 +418,16 @@ export function StaffForm({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Agency" />
+                    <SelectValue placeholder="Agency">
+                      {(value: unknown) =>
+                        agencies.find((a) => String(a.id) === String(value))
+                          ?.name ?? null
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {agencies.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
+                      <SelectItem key={String(a.id)} value={String(a.id)}>
                         {a.name}
                       </SelectItem>
                     ))}
@@ -432,11 +441,16 @@ export function StaffForm({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Role" />
+                    <SelectValue placeholder="Role">
+                      {(value: unknown) =>
+                        roles.find((r) => String(r.id) === String(value))
+                          ?.name ?? null
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
+                      <SelectItem key={String(r.id)} value={String(r.id)}>
                         {r.name}
                       </SelectItem>
                     ))}
@@ -471,14 +485,20 @@ export function StaffForm({
               }
             >
               <SelectTrigger id="supervisorId">
-                <SelectValue placeholder="Select supervisor" />
+                <SelectValue placeholder="Select supervisor">
+                  {(value: unknown) =>
+                    !value || value === "__none__"
+                      ? null
+                      : (staffMembers.find((s) => String(s.id) === String(value))?.name ?? null)
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">None</SelectItem>
                 {staffMembers
                   .filter((s) => s.id !== initial?.id)
                   .map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
+                    <SelectItem key={String(s.id)} value={String(s.id)}>
                       {s.name}
                     </SelectItem>
                   ))}
@@ -497,14 +517,20 @@ export function StaffForm({
               }
             >
               <SelectTrigger id="medicalLiasonId">
-                <SelectValue placeholder="Select liaison" />
+                <SelectValue placeholder="Select liaison">
+                  {(value: unknown) =>
+                    !value || value === "__none__"
+                      ? null
+                      : (staffMembers.find((s) => String(s.id) === String(value))?.name ?? null)
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">None</SelectItem>
                 {staffMembers
                   .filter((s) => s.id !== initial?.id)
                   .map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
+                    <SelectItem key={String(s.id)} value={String(s.id)}>
                       {s.name}
                     </SelectItem>
                   ))}

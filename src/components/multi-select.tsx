@@ -70,19 +70,19 @@ export function MultiSelect({
           <Button
             variant="outline"
             className={cn(
-              "h-9 justify-between gap-2 px-2.5 font-normal",
+              "h-auto min-h-9 w-full justify-between gap-2 px-2.5 font-normal",
               className,
             )}
           />
         }
       >
-        <div className="flex flex-1 flex-wrap items-center gap-1 overflow-hidden text-left">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 overflow-hidden text-left">
           {selectedLabels.length === 0 ? (
             <span className="text-muted-foreground">{placeholder}</span>
           ) : (
             <>
               {selectedLabels.slice(0, maxBadges).map((label) => (
-                <Badge key={label} variant="secondary" className="font-normal">
+                <Badge key={label} variant="secondary" className="max-w-[10rem] truncate font-normal">
                   {label}
                 </Badge>
               ))}

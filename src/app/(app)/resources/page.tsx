@@ -32,8 +32,19 @@ async function safeList<T>(path: string): Promise<T[]> {
   }
 }
 
+async function loadPhoneNumberTypes(): Promise<Map<number, string>> {
+  try {
+    const items = await api.get<{ id: number; name: string }[]>(
+      "/phone-number-types",
+    );
+    return new Map(items.map((t) => [t.id, t.name]));
+  } catch {
+    return new Map();
+  }
+}
+
 export default async function ResourcesPage() {
-  const [medical, healthy, medicalTypes, hlTypes, agencies, partnerTypes, programTypes] =
+  const [medical, healthy, medicalTypes, hlTypes, agencies, partnerTypes, programTypes, phoneTypes] =
     await Promise.all([
       safeList<Resource>("/medical-resources"),
       safeList<Resource>("/healthy-living-resources"),
@@ -42,6 +53,7 @@ export default async function ResourcesPage() {
       safeList<Agency>("/agencies"),
       safeList<PartnerType>("/partner-types"),
       safeList<ProgramType>("/program-types"),
+      loadPhoneNumberTypes(),
     ]);
 
   const resources: Resource[] = [
@@ -109,6 +121,7 @@ export default async function ResourcesPage() {
         agencies={agencies}
         partnerTypes={partnerTypes}
         programTypes={programTypes}
+        phoneTypes={phoneTypes}
       />
     </div>
   );

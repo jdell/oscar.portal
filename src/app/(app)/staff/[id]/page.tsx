@@ -21,7 +21,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, ApiError } from "@/lib/api";
 import { formatDate, formatName } from "@/lib/utils";
-import type { StaffMemberDetail } from "@/lib/types";
+import type { Agency, Role, StaffMemberDetail } from "@/lib/types";
 
 async function loadStaff(id: string): Promise<StaffMemberDetail | null> {
   try {
@@ -29,6 +29,24 @@ async function loadStaff(id: string): Promise<StaffMemberDetail | null> {
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
+  }
+}
+
+async function loadAgencies(): Promise<Agency[]> {
+  try {
+    const r = await api.get<Agency[] | { items: Agency[] }>("/agencies");
+    return Array.isArray(r) ? r : (r.items ?? []);
+  } catch {
+    return [];
+  }
+}
+
+async function loadRoles(): Promise<Role[]> {
+  try {
+    const r = await api.get<Role[] | { items: Role[] }>("/roles");
+    return Array.isArray(r) ? r : (r.items ?? []);
+  } catch {
+    return [];
   }
 }
 
@@ -53,12 +71,18 @@ export default async function StaffDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const staff = await loadStaff(id);
+  const [staff, agencies, roles] = await Promise.all([
+    loadStaff(id),
+    loadAgencies(),
+    loadRoles(),
+  ]);
   if (!staff) notFound();
 
   const active = staffActive(staff);
   const agencyRoles = staff.agencies ?? [];
   const phoneList = staff.phoneNumbers ?? [];
+  const agencyMap = new Map(agencies.map((a) => [String(a.id), a.name]));
+  const roleMap = new Map(roles.map((r) => [String(r.id), r.name]));
 
   return (
     <div className="space-y-6">
@@ -124,7 +148,7 @@ export default async function StaffDetailPage({
                 ? `${agencyRoles.length} agenc${agencyRoles.length === 1 ? "y" : "ies"}`
                 : (staff.agencyName ?? "—")}
             </Row>
-            <Row label="Roles">{staff.roles.join(", ") || "—"}</Row>
+            <Row label="Roles">{(staff.roles ?? []).join(", ") || "—"}</Row>
             <Row label="Joined">{formatDate(staff.createdAt)}</Row>
           </CardContent>
         </Card>
@@ -167,30 +191,38 @@ export default async function StaffDetailPage({
                 </p>
               ) : (
                 <ul className="space-y-3">
-                  {agencyRoles.map((ar, i) => (
-                    <li
-                      key={`${ar.agencyId}-${i}`}
-                      className="flex items-start justify-between gap-3 rounded-md border p-3"
-                    >
-                      <div className="flex items-start gap-3">
-                        <Building2
-                          size={16}
-                          className="mt-0.5 text-muted-foreground"
-                        />
-                        <div>
-                          <Link
-                            href={`/agencies/${ar.agencyId}`}
-                            className="text-sm font-medium hover:underline"
-                          >
-                            {ar.agencyName ?? ar.agencyId}
-                          </Link>
+                  {agencyRoles.map((ar, i) => {
+                    const agencyName =
+                      agencyMap.get(String(ar.agencyId)) ??
+                      ar.agencyName ??
+                      String(ar.agencyId);
+                    const roleName =
+                      roleMap.get(String(ar.roleId)) ?? ar.roleName;
+                    return (
+                      <li
+                        key={`${ar.agencyId}-${i}`}
+                        className="flex items-start justify-between gap-3 rounded-md border p-3"
+                      >
+                        <div className="flex items-start gap-3">
+                          <Building2
+                            size={16}
+                            className="mt-0.5 text-muted-foreground"
+                          />
+                          <div>
+                            <Link
+                              href={`/agencies/${ar.agencyId}`}
+                              className="text-sm font-medium hover:underline"
+                            >
+                              {agencyName}
+                            </Link>
+                          </div>
                         </div>
-                      </div>
-                      {ar.roleName && (
-                        <Badge variant="secondary">{ar.roleName}</Badge>
-                      )}
-                    </li>
-                  ))}
+                        {roleName && (
+                          <Badge variant="secondary">{roleName}</Badge>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </CardContent>

@@ -14,6 +14,9 @@ import {
   Clipboard,
   Handshake,
   Layers,
+  Clock,
+  Contact,
+  CheckCircle2,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -93,13 +96,27 @@ function tone(name: string): string {
   return TYPE_TONES[Math.abs(hash) % TYPE_TONES.length];
 }
 
+async function loadPhoneNumberTypes(): Promise<Map<number, string>> {
+  try {
+    const items = await api.get<{ id: number; name: string }[]>(
+      "/phone-number-types",
+    );
+    return new Map(items.map((t) => [t.id, t.name]));
+  } catch {
+    return new Map();
+  }
+}
+
 export default async function ResourceDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const resource = await loadResource(id);
+  const [resource, phoneTypes] = await Promise.all([
+    loadResource(id),
+    loadPhoneNumberTypes(),
+  ]);
   if (!resource) notFound();
 
   const isMedical = resource.category === "medical";
@@ -154,25 +171,32 @@ export default async function ResourceDetailPage({
             <CardTitle className="text-sm">Contact</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
+            {resource.primaryContact && (
+              <Row icon={<Contact size={14} />}>{resource.primaryContact}</Row>
+            )}
             {(resource.phoneNumbers ?? []).length > 0 ? (
               resource.phoneNumbers!.map((p, i) => (
                 <Row key={i} icon={<Phone size={14} />}>
                   {p.number}
                   <span className="ml-2 text-xs text-muted-foreground capitalize">
-                    {p.type}
+                    {phoneTypes.get(Number(p.type)) ?? p.type}
                   </span>
                 </Row>
               ))
             ) : (
               <Row icon={<Phone size={14} />}>{resource.phone ?? "—"}</Row>
             )}
-            <Row icon={<Mail size={14} />}>{resource.email ?? "—"}</Row>
-            <Row icon={<Globe size={14} />}>{resource.website ?? "—"}</Row>
+            <Row icon={<Mail size={14} />}>
+              {resource.emailAddress ?? resource.email ?? "—"}
+            </Row>
+            <Row icon={<Globe size={14} />}>
+              {resource.website ?? resource.url ?? "—"}
+            </Row>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Location</CardTitle>
+            <CardTitle className="text-sm">Location &amp; Hours</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex items-start gap-2">
@@ -191,6 +215,9 @@ export default async function ResourceDetailPage({
                 </a>
               </Button>
             )}
+            {resource.hours && (
+              <Row icon={<Clock size={14} />}>{resource.hours}</Row>
+            )}
             <Row label="Created">{formatDate(resource.createdAt)}</Row>
           </CardContent>
         </Card>
@@ -198,10 +225,42 @@ export default async function ResourceDetailPage({
           <CardHeader>
             <CardTitle className="text-sm">Description</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            {resource.description ?? "No description provided."}
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>{resource.description ?? "No description provided."}</p>
+            {resource.targetAudience && (
+              <div>
+                <span className="font-medium text-foreground">Target audience: </span>
+                {resource.targetAudience}
+              </div>
+            )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Services, Notes, Features */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {(resource.services || resource.notes) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Services &amp; Notes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              {resource.services && (
+                <div>
+                  <p className="mb-1 font-medium text-foreground">Services</p>
+                  <p className="whitespace-pre-wrap">{resource.services}</p>
+                </div>
+              )}
+              {resource.notes && (
+                <div>
+                  <p className="mb-1 font-medium text-foreground">Notes</p>
+                  <p className="whitespace-pre-wrap">{resource.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+        <FeatureFlags resource={resource} />
       </div>
 
       <Tabs defaultValue="types">
@@ -455,6 +514,56 @@ export default async function ResourceDetailPage({
         )}
       </Tabs>
     </div>
+  );
+}
+
+const FEATURE_FLAGS: {
+  key: keyof ResourceDetail;
+  label: string;
+}[] = [
+  { key: "acceptingNewClients", label: "Accepting new clients" },
+  { key: "indigentCare", label: "Indigent care" },
+  { key: "slidingFeeScale", label: "Sliding fee scale" },
+  { key: "interviewCheck", label: "Interview check" },
+  { key: "publicTransportation", label: "Public transportation" },
+  { key: "bilingualStaff", label: "Bilingual staff" },
+  { key: "eligibilityRequirements", label: "Eligibility requirements" },
+  { key: "applicationProcess", label: "Application process" },
+  { key: "feesAssociated", label: "Fees associated" },
+];
+
+function FeatureFlags({ resource }: { resource: ResourceDetail }) {
+  const active = FEATURE_FLAGS.filter((f) => resource[f.key] === true);
+  const inactive = FEATURE_FLAGS.filter((f) => resource[f.key] === false);
+  const unset = FEATURE_FLAGS.filter((f) => resource[f.key] == null);
+  if (active.length === 0 && inactive.length === 0 && unset.length === FEATURE_FLAGS.length) {
+    return null;
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Features</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ul className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-2">
+          {FEATURE_FLAGS.map((f) => {
+            const val = resource[f.key];
+            if (val == null) return null;
+            return (
+              <li key={f.key} className="flex items-center gap-2">
+                <CheckCircle2
+                  size={14}
+                  className={val ? "text-emerald-600" : "text-muted-foreground opacity-40"}
+                />
+                <span className={val ? "" : "text-muted-foreground line-through"}>
+                  {f.label}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
