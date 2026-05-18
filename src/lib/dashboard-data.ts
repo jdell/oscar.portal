@@ -15,6 +15,7 @@ export async function loadOverview(
     });
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("dashboard overview failed", error.status);
     }
     return null;
@@ -30,6 +31,7 @@ export async function loadTrends(
     });
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("dashboard trends failed", error.status);
     }
     return null;
@@ -48,6 +50,7 @@ export async function loadRecentActivity(
     return Array.isArray(result) ? result : (result.items ?? []);
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("dashboard recent activity failed", error.status);
     }
     return [];

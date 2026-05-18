@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  AlertCircle,
   HeartPulse,
   CheckCircle2,
   XCircle,
@@ -8,6 +9,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { KpiCard } from "@/components/kpi-card";
 import { api, ApiError } from "@/lib/api";
 import type {
@@ -26,6 +28,7 @@ async function safeList<T>(path: string): Promise<T[]> {
     return Array.isArray(result) ? result : (result.items ?? []);
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error(`${path} fetch failed`, error.status);
     }
     return [];
@@ -44,17 +47,52 @@ async function loadPhoneNumberTypes(): Promise<Map<number, string>> {
 }
 
 export default async function ResourcesPage() {
-  const [medical, healthy, medicalTypes, hlTypes, agencies, partnerTypes, programTypes, phoneTypes] =
-    await Promise.all([
-      safeList<Resource>("/medical-resources"),
-      safeList<Resource>("/healthy-living-resources"),
-      safeList<MedicalResourceType>("/medical-resource-types"),
-      safeList<HealthyLivingResourceType>("/healthy-living-resource-types"),
-      safeList<Agency>("/agencies"),
-      safeList<PartnerType>("/partner-types"),
-      safeList<ProgramType>("/program-types"),
-      loadPhoneNumberTypes(),
-    ]);
+  const {
+    medical,
+    healthy,
+    medicalTypes,
+    hlTypes,
+    agencies,
+    partnerTypes,
+    programTypes,
+    phoneTypes,
+    rateLimited,
+  } = await Promise.all([
+    safeList<Resource>("/medical-resources"),
+    safeList<Resource>("/healthy-living-resources"),
+    safeList<MedicalResourceType>("/medical-resource-types"),
+    safeList<HealthyLivingResourceType>("/healthy-living-resource-types"),
+    safeList<Agency>("/agencies"),
+    safeList<PartnerType>("/partner-types"),
+    safeList<ProgramType>("/program-types"),
+    loadPhoneNumberTypes(),
+  ])
+    .then(([medical, healthy, medicalTypes, hlTypes, agencies, partnerTypes, programTypes, phoneTypes]) => ({
+      medical,
+      healthy,
+      medicalTypes,
+      hlTypes,
+      agencies,
+      partnerTypes,
+      programTypes,
+      phoneTypes,
+      rateLimited: false as boolean,
+    }))
+    .catch((error: unknown) => {
+      if (error instanceof ApiError && error.status === 429)
+        return {
+          medical: [] as Resource[],
+          healthy: [] as Resource[],
+          medicalTypes: [] as MedicalResourceType[],
+          hlTypes: [] as HealthyLivingResourceType[],
+          agencies: [] as Agency[],
+          partnerTypes: [] as PartnerType[],
+          programTypes: [] as ProgramType[],
+          phoneTypes: new Map<number, string>(),
+          rateLimited: true,
+        };
+      throw error;
+    });
 
   const resources: Resource[] = [
     ...medical.map((r) => ({ ...r, category: "medical" as const })),
@@ -79,6 +117,16 @@ export default async function ResourcesPage() {
           </Button>
         }
       />
+      {rateLimited && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Too many requests</AlertTitle>
+          <AlertDescription>
+            The server is rate-limiting requests. Please wait a moment and
+            refresh the page.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <section
         aria-label="Resource stats"

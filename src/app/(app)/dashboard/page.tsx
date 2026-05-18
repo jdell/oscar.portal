@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  AlertCircle,
   Building2,
   CalendarClock,
   HeartPulse,
@@ -10,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { KpiCard } from "@/components/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,10 +19,14 @@ import {
   loadRecentActivity,
   loadTrends,
 } from "@/lib/dashboard-data";
+import { ApiError } from "@/lib/api";
 import type {
   DashboardEntityKey,
   DashboardEntitySummary,
   DashboardPeriod,
+  DashboardOverview,
+  DashboardTrends,
+  DashboardActivityEvent,
 } from "@/lib/types";
 import { DASHBOARD_PERIODS } from "@/lib/types";
 import { PeriodSelector } from "./period-selector";
@@ -90,11 +96,27 @@ export default async function DashboardPage({
   const { period: periodParam } = await searchParams;
   const period = parsePeriod(periodParam);
 
-  const [overview, trends, activity] = await Promise.all([
+  const { overview, trends, activity, rateLimited } = await Promise.all([
     loadOverview(period),
     loadTrends(period),
     loadRecentActivity(20),
-  ]);
+  ])
+    .then(([overview, trends, activity]) => ({
+      overview,
+      trends,
+      activity,
+      rateLimited: false as boolean,
+    }))
+    .catch((error: unknown) => {
+      if (error instanceof ApiError && error.status === 429)
+        return {
+          overview: null,
+          trends: null,
+          activity: [] as DashboardActivityEvent[],
+          rateLimited: true,
+        };
+      throw error;
+    });
 
   const hero = overview?.hero;
   const entitySummaries: DashboardEntitySummary[] =
@@ -110,7 +132,18 @@ export default async function DashboardPage({
         <PeriodSelector active={period} />
       </div>
 
-      {!overview && (
+      {rateLimited && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Too many requests</AlertTitle>
+          <AlertDescription>
+            The server is rate-limiting requests. Please wait a moment and
+            refresh the page.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!rateLimited && !overview && (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
             <span className="text-foreground">

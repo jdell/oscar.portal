@@ -1,4 +1,6 @@
+import { AlertCircle } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api";
 import type { Permission, Role } from "@/lib/types";
@@ -11,6 +13,7 @@ async function loadRoles(): Promise<Role[]> {
     return raw.map((r) => ({ ...r, permissions: r.permissions ?? [] }));
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("roles fetch failed", error.status);
     }
     return [];
@@ -32,6 +35,7 @@ async function loadPermissions(): Promise<Permission[]> {
     }));
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("permissions fetch failed", error.status);
     }
     return [];
@@ -39,10 +43,16 @@ async function loadPermissions(): Promise<Permission[]> {
 }
 
 export default async function PermissionsPage() {
-  const [roles, permissions] = await Promise.all([
+  const { roles, permissions, rateLimited } = await Promise.all([
     loadRoles(),
     loadPermissions(),
-  ]);
+  ])
+    .then(([roles, permissions]) => ({ roles, permissions, rateLimited: false as boolean }))
+    .catch((error: unknown) => {
+      if (error instanceof ApiError && error.status === 429)
+        return { roles: [] as Role[], permissions: [] as Permission[], rateLimited: true };
+      throw error;
+    });
 
   return (
     <div className="space-y-6">
@@ -50,6 +60,16 @@ export default async function PermissionsPage() {
         title="Permissions"
         description="Roles and the permissions assigned to each one."
       />
+      {rateLimited && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Too many requests</AlertTitle>
+          <AlertDescription>
+            The server is rate-limiting requests. Please wait a moment and
+            refresh the page.
+          </AlertDescription>
+        </Alert>
+      )}
       {permissions.length === 0 && roles.length > 0 && (
         <Card>
           <CardContent className="py-4 text-sm text-muted-foreground">

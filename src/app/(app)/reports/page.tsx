@@ -1,11 +1,13 @@
 import {
   Activity,
+  AlertCircle,
   HeartPulse,
   Users,
   CheckCircle2,
   TrendingUp,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -35,6 +37,7 @@ async function loadStats(range: RangeParams): Promise<DashboardStats | null> {
     });
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("dashboard/stats failed", error.status);
     }
     return null;
@@ -50,6 +53,7 @@ async function loadOutcomes(
     });
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("outcomes/summary failed", error.status);
     }
     return null;
@@ -66,6 +70,7 @@ async function loadEffectiveness(
     );
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("program-effectiveness failed", error.status);
     }
     return null;
@@ -80,14 +85,40 @@ export default async function ReportsPage({
   const sp = await searchParams;
   const range: RangeParams = { from: sp.from, to: sp.to };
 
-  const [stats, outcomes, effectiveness] = await Promise.all([
+  const { stats, outcomes, effectiveness, rateLimited } = await Promise.all([
     loadStats(range),
     loadOutcomes(range),
     loadEffectiveness(range),
-  ]);
+  ])
+    .then(([stats, outcomes, effectiveness]) => ({
+      stats,
+      outcomes,
+      effectiveness,
+      rateLimited: false as boolean,
+    }))
+    .catch((error: unknown) => {
+      if (error instanceof ApiError && error.status === 429)
+        return {
+          stats: null,
+          outcomes: null,
+          effectiveness: null,
+          rateLimited: true,
+        };
+      throw error;
+    });
 
   return (
     <div className="space-y-6">
+      {rateLimited && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Too many requests</AlertTitle>
+          <AlertDescription>
+            The server is rate-limiting requests. Please wait a moment and
+            refresh the page.
+          </AlertDescription>
+        </Alert>
+      )}
       <PageHeader
         title="Reports"
         description={

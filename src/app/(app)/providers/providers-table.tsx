@@ -90,7 +90,7 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
       },
       {
         accessorKey: "specialtyLabel",
-        header: "Specialty",
+        header: "Participation type",
         cell: ({ row }) =>
           row.original.specialtyLabel ? (
             <span
@@ -184,7 +184,7 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
       {summary.bySpecialty.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            By specialty
+            By participation type
           </span>
           {summary.bySpecialty.map((entry) => (
             <span
@@ -202,7 +202,7 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <Label className="text-xs">Specialty</Label>
+          <Label className="text-xs">Participation type</Label>
           <Select
             value={specialtyFilter}
             onValueChange={(v) =>
@@ -213,7 +213,7 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All specialties</SelectItem>
+              <SelectItem value="all">All types</SelectItem>
               {summary.bySpecialty.map((entry) => (
                 <SelectItem key={entry.key} value={entry.key}>
                   {entry.key === UNKNOWN_SPECIALTY_KEY
@@ -246,7 +246,7 @@ export function ProvidersTable({ data }: { data: Provider[] }) {
         columns={columns}
         data={filtered}
         searchKey="name"
-        searchPlaceholder="Search by name, email, specialty, or resource…"
+        searchPlaceholder="Search by name, email, participation type, or resource…"
         rowHref={(p) => `/providers/${p.id}/edit`}
         emptyMessage="No providers match these filters."
       />

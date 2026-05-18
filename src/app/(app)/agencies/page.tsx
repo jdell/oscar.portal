@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Building2, CheckCircle2, PlusCircle, TrendingUp, Plus } from "lucide-react";
+import { AlertCircle, Building2, CheckCircle2, PlusCircle, TrendingUp, Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { KpiCard } from "@/components/kpi-card";
 import { api, ApiError } from "@/lib/api";
 import type {
@@ -18,6 +19,7 @@ async function loadAgencies(): Promise<Agency[]> {
     return result.items ?? [];
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("agencies fetch failed", error.status, error.body);
     }
     return [];
@@ -41,14 +43,20 @@ async function loadSummary(): Promise<AgencySummary | null> {
 }
 
 export default async function AgenciesPage() {
-  const [agencies, filterOptions, summary] = await Promise.all([
-    loadAgencies(),
-    loadFilterOptions(),
-    loadSummary(),
-  ]);
+  const [{ data: agencies, rateLimited }, filterOptions, summary] =
+    await Promise.all([
+      loadAgencies()
+        .then((data) => ({ data, rateLimited: false as boolean }))
+        .catch((error: unknown) => {
+          if (error instanceof ApiError && error.status === 429)
+            return { data: [] as Agency[], rateLimited: true };
+          throw error;
+        }),
+      loadFilterOptions(),
+      loadSummary(),
+    ]);
 
-  const total =
-    summary?.total ?? agencies.length;
+  const total = summary?.total ?? agencies.length;
   const active =
     summary?.active ??
     agencies.filter((a) => a.active ?? a.status === "active").length;
@@ -66,6 +74,16 @@ export default async function AgenciesPage() {
           </Button>
         }
       />
+      {rateLimited && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Too many requests</AlertTitle>
+          <AlertDescription>
+            The server is rate-limiting requests. Please wait a moment and
+            refresh the page.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <section
         aria-label="Agency stats"

@@ -1,4 +1,6 @@
+import { AlertCircle } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -19,6 +21,7 @@ async function loadOrganization(
     return await api.get<OrganizationSettings>(`/organizations/${id}`);
   } catch (error) {
     if (error instanceof ApiError) {
+      if (error.status === 429) throw error;
       console.error("organization fetch failed", error.status);
     }
     return null;
@@ -27,7 +30,15 @@ async function loadOrganization(
 
 export default async function SettingsPage() {
   const session = await requireSession();
-  const org = await loadOrganization(session.user.organizationId);
+  const { data: org, rateLimited } = await loadOrganization(
+    session.user.organizationId,
+  )
+    .then((data) => ({ data, rateLimited: false as boolean }))
+    .catch((error: unknown) => {
+      if (error instanceof ApiError && error.status === 429)
+        return { data: null, rateLimited: true };
+      throw error;
+    });
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -35,6 +46,16 @@ export default async function SettingsPage() {
         title="Settings"
         description="Configuration for your organization."
       />
+      {rateLimited && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Too many requests</AlertTitle>
+          <AlertDescription>
+            The server is rate-limiting requests. Please wait a moment and
+            refresh the page.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>

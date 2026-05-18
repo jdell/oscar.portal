@@ -123,6 +123,7 @@ export function ProviderForm({
 
   const ptId = form.watch("providerParticipationTypeId");
   const mrId = form.watch("medicalResourceId");
+  const active = form.watch("active");
 
   return (
     <Card>
@@ -165,8 +166,14 @@ export function ProviderForm({
                   )
                 }
               >
-                <SelectTrigger id="providerParticipationTypeId">
-                  <SelectValue placeholder="Select a type" />
+                <SelectTrigger id="providerParticipationTypeId" className="w-full">
+                  <SelectValue placeholder="Select a type">
+                    {(v: string) =>
+                      v
+                        ? (participationTypes.find((t) => String(t.id) === v)?.name ?? v)
+                        : null
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {participationTypes.map((t) => (
@@ -192,8 +199,14 @@ export function ProviderForm({
                   })
                 }
               >
-                <SelectTrigger id="medicalResourceId">
-                  <SelectValue placeholder="Select a resource" />
+                <SelectTrigger id="medicalResourceId" className="w-full">
+                  <SelectValue placeholder="Select a resource">
+                    {(v: string) =>
+                      v
+                        ? (medicalResources.find((r) => String(r.id) === v)?.name ?? v)
+                        : null
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {medicalResources.map((r) => (
@@ -210,12 +223,19 @@ export function ProviderForm({
               )}
             </div>
             <div className="flex items-center justify-between rounded-md border px-3 py-2 md:col-span-2">
-              <Label htmlFor="active" className="cursor-pointer">
-                Active
-              </Label>
+              <div className="space-y-0.5">
+                <Label htmlFor="active" className="cursor-pointer font-medium">
+                  {active ? "Active" : "Inactive"}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {active
+                    ? "Visible and available to participants"
+                    : "Hidden from participants"}
+                </p>
+              </div>
               <Switch
                 id="active"
-                checked={form.watch("active")}
+                checked={active}
                 onCheckedChange={(v) => form.setValue("active", v)}
               />
             </div>
