@@ -68,7 +68,7 @@ export default async function LoginPage({
 
         {/* Mobile: org name shown inline next to logo */}
         <div className="relative z-10 lg:hidden">
-          <p className="text-sm font-semibold leading-tight">Oscar Admin</p>
+          <p className="text-sm font-semibold leading-tight">OSCAR Portal</p>
           <a
             href="https://www.cpccommunityhealth.org/"
             target="_blank"

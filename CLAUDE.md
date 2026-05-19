@@ -92,7 +92,7 @@ Copy `.env.local.example` → `.env.local`:
 
 ```
 NEXT_PUBLIC_API_BASE_URL=https://cpc-oscar-api-staging.azurewebsites.net
-NEXT_PUBLIC_APP_NAME=Oscar Admin
+NEXT_PUBLIC_APP_NAME=OSCAR Portal
 NEXT_PUBLIC_FIREBASE_API_KEY=
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=

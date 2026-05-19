@@ -36,7 +36,7 @@ export function Topbar({ orgName, userDisplayName, userEmail }: TopbarProps) {
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background px-4">
       <MobileNav orgName={orgName} />
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-sky-700">Oscar Admin</span>
+        <span className="text-sm font-semibold text-sky-700">OSCAR Portal</span>
         <Badge variant="secondary" className="hidden sm:inline-flex">
           {orgName}
         </Badge>

@@ -83,7 +83,11 @@ export default async function ReportsPage({
   searchParams: Promise<RangeParams>;
 }) {
   const sp = await searchParams;
-  const range: RangeParams = { from: sp.from, to: sp.to };
+  const lastYear = new Date().getFullYear() - 1;
+  const range: RangeParams = {
+    from: sp.from ?? `${lastYear}-01-01`,
+    to: sp.to ?? `${lastYear}-12-31`,
+  };
 
   const { stats, outcomes, effectiveness, rateLimited } = await Promise.all([
     loadStats(range),

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Oscar Admin",
+  title: "OSCAR Portal",
   description: "Organization admin panel for the Oscar platform",
 };
 
